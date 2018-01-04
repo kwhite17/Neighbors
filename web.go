@@ -2,12 +2,11 @@ package main
 
 import "net/http"
 import "github.com/kwhite17/Neighbors/neighbors"
-
-func helloWorld(w http.ResponseWriter, r *http.Request) {
-	w.Write([]byte("Hello World\n"))
-}
+import "github.com/kwhite17/Neighbors/samaritans"
 
 func main() {
-	http.HandleFunc("/neighbors/", neighbors.RequestHandler)
-	http.ListenAndServe(":8080", nil)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/neighbors/", neighbors.RequestHandler)
+	mux.HandleFunc("/samaritans/", samaritans.RequestHandler)
+	http.ListenAndServe(":8080", mux)
 }

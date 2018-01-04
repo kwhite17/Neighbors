@@ -20,7 +20,7 @@ create table if not exists samaritans (
 
 create table if not exists items (
     ItemID int not null primary key auto_increment, 
-    Type varchar(100) not null, 
+    Category varchar(100) not null,
     Gender varchar(100), 
     Size varchar(100) not null, 
     Quantity int not null, 
