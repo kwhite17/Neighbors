@@ -5,7 +5,16 @@ import _ "github.com/go-sql-driver/mysql"
 import "log"
 import "context"
 
-var neighborsDatabase = initDatabase()
+var NeighborsDatabase = NeighborsDatasource{database: initDatabase()}
+
+type Datasource interface {
+	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Rows
+	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) sql.Result
+}
+
+type NeighborsDatasource struct {
+	database *sql.DB
+}
 
 func initDatabase() *sql.DB {
 	db, err := sql.Open("mysql", "neighbors_dba:neighbors_dba@/neighbors")
@@ -15,8 +24,8 @@ func initDatabase() *sql.DB {
 	return db
 }
 
-func ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Rows {
-	resultSet, err := neighborsDatabase.QueryContext(ctx, query, arguments...)
+func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Rows {
+	resultSet, err := nd.database.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery - %v\n", err)
 		return nil
@@ -24,8 +33,8 @@ func ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}
 	return resultSet
 }
 
-func ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) sql.Result {
-	result, err := neighborsDatabase.ExecContext(ctx, query, arguments...)
+func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) sql.Result {
+	result, err := nd.database.ExecContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - WriteQuery - %v\n", err)
 		return nil

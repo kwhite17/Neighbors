@@ -10,22 +10,26 @@ import (
 	"github.com/kwhite17/Neighbors/database"
 )
 
-func RequestHandler(w http.ResponseWriter, r *http.Request) {
+type SamaritanServiceHandler struct {
+	Database database.Datasource
+}
+
+func (ssh SamaritanServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		handleCreateSamaritan(w, r)
+		ssh.handleCreateSamaritan(w, r)
 	case "GET":
-		handleGetSamaritan(w, r)
+		ssh.handleGetSamaritan(w, r)
 	case "DELETE":
-		handleDeleteSamaritan(w, r)
+		ssh.handleDeleteSamaritan(w, r)
 	case "PUT":
-		handleUpdateSamaritan(w, r)
+		ssh.handleUpdateSamaritan(w, r)
 	default:
 		w.Write([]byte("Invalid Request\n"))
 	}
 }
 
-func handleCreateSamaritan(w http.ResponseWriter, r *http.Request) {
+func (ssh SamaritanServiceHandler) handleCreateSamaritan(w http.ResponseWriter, r *http.Request) {
 	userData := make(map[string]string)
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&userData)
@@ -41,7 +45,7 @@ func handleCreateSamaritan(w http.ResponseWriter, r *http.Request) {
 	}
 	createSamaritanQuery := buildCreateSamaritanQuery(columns)
 	log.Printf("DEBUG - CreateSamaritan - Executing query: %s\n", createSamaritanQuery)
-	database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
+	ssh.Database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
 }
 
 func buildCreateSamaritanQuery(columns []string) string {
@@ -55,19 +59,19 @@ func buildCreateSamaritanQuery(columns []string) string {
 
 }
 
-func handleGetSamaritan(w http.ResponseWriter, r *http.Request) {
+func (ssh SamaritanServiceHandler) handleGetSamaritan(w http.ResponseWriter, r *http.Request) {
 	if username := strings.TrimPrefix(r.URL.Path, "/samaritans/"); len(username) > 0 {
-		handleGetSingleSamaritan(w, r, username)
+		ssh.handleGetSingleSamaritan(w, r, username)
 	} else {
-		handleGetAllSamaritans(w, r)
+		ssh.handleGetAllSamaritans(w, r)
 	}
 }
 
 var getSingleSamaritanQuery = "SELECT Username, Email, Phone, Location from samaritans where Username=?"
 
-func handleGetSingleSamaritan(w http.ResponseWriter, r *http.Request, username string) {
+func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWriter, r *http.Request, username string) {
 	log.Println("Fetching user: " + username)
-	result := database.ExecuteReadQuery(r.Context(), getSingleSamaritanQuery, []interface{}{username})
+	result := ssh.Database.ExecuteReadQuery(r.Context(), getSingleSamaritanQuery, []interface{}{username})
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -80,8 +84,8 @@ func handleGetSingleSamaritan(w http.ResponseWriter, r *http.Request, username s
 
 var getAllSamaritansQuery = "SELECT Username, Email, Phone, Location from samaritans"
 
-func handleGetAllSamaritans(w http.ResponseWriter, r *http.Request) {
-	result := database.ExecuteReadQuery(r.Context(), getAllSamaritansQuery, nil)
+func (ssh SamaritanServiceHandler) handleGetAllSamaritans(w http.ResponseWriter, r *http.Request) {
+	result := ssh.Database.ExecuteReadQuery(r.Context(), getAllSamaritansQuery, nil)
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -92,7 +96,7 @@ func handleGetAllSamaritans(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 }
 
-func handleUpdateSamaritan(w http.ResponseWriter, r *http.Request) {
+func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, r *http.Request) {
 	userData := make(map[string]string)
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&userData)
@@ -110,7 +114,7 @@ func handleUpdateSamaritan(w http.ResponseWriter, r *http.Request) {
 	}
 	updateSamaritanQuery := buildUpdateSamaritanQuery(columns, userData["Username"])
 	log.Printf("DEBUG - UpdateSamaritan - Executing query: %s\n", updateSamaritanQuery)
-	database.ExecuteWriteQuery(r.Context(), updateSamaritanQuery, values)
+	ssh.Database.ExecuteWriteQuery(r.Context(), updateSamaritanQuery, values)
 }
 
 func buildUpdateSamaritanQuery(columns []string, username string) string {
@@ -125,10 +129,10 @@ func buildUpdateSamaritanQuery(columns []string, username string) string {
 
 var deleteNeighorQuery = "DELETE FROM samaritans WHERE Username=?"
 
-func handleDeleteSamaritan(w http.ResponseWriter, r *http.Request) {
+func (ssh SamaritanServiceHandler) handleDeleteSamaritan(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimPrefix(r.URL.Path, "/samaritans/")
 	w.Write([]byte("Deleting user data for " + username + "\n"))
-	database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
+	ssh.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
 
 }
 

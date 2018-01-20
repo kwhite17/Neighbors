@@ -10,22 +10,26 @@ import (
 	"github.com/kwhite17/Neighbors/database"
 )
 
-func RequestHandler(w http.ResponseWriter, r *http.Request) {
+type NeighborServiceHandler struct {
+	Database database.Datasource
+}
+
+func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
-		handleCreateNeighbor(w, r)
+		nsh.handleCreateNeighbor(w, r)
 	case "GET":
-		handleGetNeighbor(w, r)
+		nsh.handleGetNeighbor(w, r)
 	case "DELETE":
-		handleDeleteNeighbor(w, r)
+		nsh.handleDeleteNeighbor(w, r)
 	case "PUT":
-		handleUpdateNeighbor(w, r)
+		nsh.handleUpdateNeighbor(w, r)
 	default:
 		w.Write([]byte("Invalid Request\n"))
 	}
 }
 
-func handleCreateNeighbor(w http.ResponseWriter, r *http.Request) {
+func (nsh NeighborServiceHandler) handleCreateNeighbor(w http.ResponseWriter, r *http.Request) {
 	userData := make(map[string]string)
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&userData)
@@ -39,12 +43,12 @@ func handleCreateNeighbor(w http.ResponseWriter, r *http.Request) {
 		values = append(values, v)
 		columns = append(columns, k)
 	}
-	createNeighborQuery := buildCreateNeighborQuery(columns)
+	createNeighborQuery := nsh.buildCreateNeighborQuery(columns)
 	log.Printf("DEBUG - CreateNeighbor - Executing query: %s\n", createNeighborQuery)
-	database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
+	nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
 }
 
-func buildCreateNeighborQuery(columns []string) string {
+func (nsh NeighborServiceHandler) buildCreateNeighborQuery(columns []string) string {
 	columnsString := strings.Join(columns, ",")
 	args := make([]string, 0)
 	for i := 0; i < len(columns); i++ {
@@ -55,19 +59,19 @@ func buildCreateNeighborQuery(columns []string) string {
 
 }
 
-func handleGetNeighbor(w http.ResponseWriter, r *http.Request) {
+func (nsh NeighborServiceHandler) handleGetNeighbor(w http.ResponseWriter, r *http.Request) {
 	if username := strings.TrimPrefix(r.URL.Path, "/neighbors/"); len(username) > 0 {
-		handleGetSingleNeighbor(w, r, username)
+		nsh.handleGetSingleNeighbor(w, r, username)
 	} else {
-		handleGetAllNeighbors(w, r)
+		nsh.handleGetAllNeighbors(w, r)
 	}
 }
 
 var getSingleNeighborQuery = "SELECT Username, Email, Phone, Location from neighbors where Username=?"
 
-func handleGetSingleNeighbor(w http.ResponseWriter, r *http.Request, username string) {
+func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter, r *http.Request, username string) {
 	log.Println("Fetching user: " + username)
-	result := database.ExecuteReadQuery(r.Context(), getSingleNeighborQuery, []interface{}{username})
+	result := nsh.Database.ExecuteReadQuery(r.Context(), getSingleNeighborQuery, []interface{}{username})
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -80,8 +84,8 @@ func handleGetSingleNeighbor(w http.ResponseWriter, r *http.Request, username st
 
 var getAllNeighborsQuery = "SELECT Username, Email, Phone, Location from neighbors"
 
-func handleGetAllNeighbors(w http.ResponseWriter, r *http.Request) {
-	result := database.ExecuteReadQuery(r.Context(), getAllNeighborsQuery, nil)
+func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r *http.Request) {
+	result := nsh.Database.ExecuteReadQuery(r.Context(), getAllNeighborsQuery, nil)
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -92,7 +96,7 @@ func handleGetAllNeighbors(w http.ResponseWriter, r *http.Request) {
 	w.Write(response)
 }
 
-func handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
+func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
 	userData := make(map[string]string)
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&userData)
@@ -110,7 +114,7 @@ func handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
 	}
 	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["Username"])
 	log.Printf("DEBUG - UpdateNeighbor - Executing query: %s\n", updateNeighborQuery)
-	database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
+	nsh.Database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
 }
 
 func buildUpdateNeighborQuery(columns []string, username string) string {
@@ -125,10 +129,10 @@ func buildUpdateNeighborQuery(columns []string, username string) string {
 
 var deleteNeighorQuery = "DELETE FROM neighbors WHERE Username=?"
 
-func handleDeleteNeighbor(w http.ResponseWriter, r *http.Request) {
+func (nsh NeighborServiceHandler) handleDeleteNeighbor(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimPrefix(r.URL.Path, "/neighbors/")
 	w.Write([]byte("Deleting user data for " + username + "\n"))
-	database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
+	nsh.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
 
 }
 
