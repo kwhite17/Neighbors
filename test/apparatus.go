@@ -22,7 +22,7 @@ var testSamaritans = buildTestSamaritans()
 func PopulateNeighborsTable() ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, v := range testNeighbors {
-		output := TestConnection.ExecuteWriteQuery(context.Background(), createTestNeighborsQuery, v)
+		output, err := TestConnection.ExecuteWriteQuery(context.Background(), createTestNeighborsQuery, v)
 		id, err := output.LastInsertId()
 		if err != nil {
 			return nil, err
@@ -35,7 +35,7 @@ func PopulateNeighborsTable() ([]int64, error) {
 func PopulateSamaritansTable() ([]int64, error) {
 	ids := make([]int64, 0)
 	for _, v := range testSamaritans {
-		output := TestConnection.ExecuteWriteQuery(context.Background(), createTestSamaritansQuery, v)
+		output, err := TestConnection.ExecuteWriteQuery(context.Background(), createTestSamaritansQuery, v)
 		id, err := output.LastInsertId()
 		if err != nil {
 			return nil, err
@@ -45,15 +45,23 @@ func PopulateSamaritansTable() ([]int64, error) {
 	return ids, nil
 }
 
-func PopulateItemsTable() error {
+func PopulateItemsTable() ([]int64, error) {
 	neighborIds, err := PopulateNeighborsTable()
 	if err != nil {
-		return err
+		return nil, err
 	}
+	ids := make([]int64, 0)
 	for i := 0; i < len(neighborIds); i++ {
-		TestConnection.ExecuteWriteQuery(context.Background(), createTestItemsQuery, append(testItems["testItem"], neighborIds[i]))
+		for _, v := range testItems {
+			output, err := TestConnection.ExecuteWriteQuery(context.Background(), createTestItemsQuery, append(v, neighborIds[i]))
+			id, err := output.LastInsertId()
+			if err != nil {
+				return nil, err
+			}
+			ids = append(ids, id)
+		}
 	}
-	return nil
+	return ids, nil
 }
 
 func RecordServiceRequest(service http.Handler, req *http.Request) *http.Response {
@@ -76,7 +84,8 @@ func buildTestNeighbors() map[string][]interface{} {
 
 func buildTestItems() map[string][]interface{} {
 	items := make(map[string][]interface{})
-	items["testItem"] = []interface{}{"testItem", "M", 1, "Home"}
+	items["testItemMedium"] = []interface{}{"testItem", "M", 1, "Home"}
+	items["testItemLarge"] = []interface{}{"testItem", "L", 1, "Home"}
 	return items
 }
 

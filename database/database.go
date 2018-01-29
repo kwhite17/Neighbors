@@ -8,8 +8,8 @@ import "context"
 var NeighborsDatabase = NeighborsDatasource{database: initDatabase()}
 
 type Datasource interface {
-	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Rows
-	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) sql.Result
+	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error)
+	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error)
 }
 
 type NeighborsDatasource struct {
@@ -24,20 +24,20 @@ func initDatabase() *sql.DB {
 	return db
 }
 
-func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Rows {
+func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
 	resultSet, err := nd.database.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery - %v\n", err)
-		return nil
+		return nil, err
 	}
-	return resultSet
+	return resultSet, nil
 }
 
-func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) sql.Result {
+func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
 	result, err := nd.database.ExecContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - WriteQuery - %v\n", err)
-		return nil
+		return nil, err
 	}
-	return result
+	return result, nil
 }

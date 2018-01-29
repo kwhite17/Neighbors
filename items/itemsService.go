@@ -3,7 +3,6 @@ package items
 import (
 	"database/sql"
 	"encoding/json"
-	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -48,6 +47,7 @@ func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Re
 	err := decoder.Decode(&itemData)
 	if err != nil {
 		log.Printf("ERROR - CreateItem - Item Data Decode: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	values := make([]interface{}, 0)
@@ -58,7 +58,13 @@ func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Re
 	}
 	createItemQuery := ish.buildCreateItemQuery(columns)
 	log.Printf("DEBUG - CreateItem - Executing query: %s\n", createItemQuery)
-	ish.Database.ExecuteWriteQuery(r.Context(), createItemQuery, values)
+	_, err = ish.Database.ExecuteWriteQuery(r.Context(), createItemQuery, values)
+	if err != nil {
+		log.Printf("ERROR - CreateItem - Database Insert: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 	// rowID, err := queryResult.LastInsertId()
 	// if err != nil {
 
@@ -88,28 +94,39 @@ func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Reque
 var getSingleItemQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items where ItemID=?"
 
 func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string) {
-	result := ish.Database.ExecuteReadQuery(r.Context(), getSingleItemQuery, []interface{}{itemID})
+	result, err := ish.Database.ExecuteReadQuery(r.Context(), getSingleItemQuery, []interface{}{itemID})
 	defer result.Close()
-	response, err := buildGenericResposne(result)
+	if err != nil {
+		log.Printf("ERROR - GetItem - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	response, err := buildJsonResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	tmpl, err := template.ParseFiles("templates/items.html")
-	if err != nil {
-		log.Printf("ERROR - GetItem - Template Rendering: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	tmpl.Execute(w, response)
+	w.Write([]byte(response))
+	// tmpl, err := template.ParseFiles("templates/items.html")
+	// if err != nil {
+	// 	log.Printf("ERROR - GetItem - Template Rendering: %v\n", err)
+	// 	w.WriteHeader(http.StatusInternalServerError)
+	// 	return
+	// }
+	// // tmpl.Execute(w, response)
 }
 
 var getAllItemsQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items"
 
 func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request) {
-	result := ish.Database.ExecuteReadQuery(r.Context(), getAllItemsQuery, nil)
+	result, err := ish.Database.ExecuteReadQuery(r.Context(), getAllItemsQuery, nil)
 	defer result.Close()
+	if err != nil {
+		log.Printf("ERROR - GetAllItems - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	response, err := buildJsonResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
@@ -134,17 +151,21 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 		log.Printf("ERROR - UpdateItem - User Data Decode: %v\n", err)
 		return
 	}
+	itemID := strings.TrimPrefix(r.URL.Path, "/items/")
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range itemData {
-		if k != "ItemID" {
-			values = append(values, v)
-			columns = append(columns, k)
-		}
+		values = append(values, v)
+		columns = append(columns, k)
 	}
-	updateItemQuery := ish.buildUpdateItemQuery(columns, itemData["ItemID"].(string))
+	updateItemQuery := ish.buildUpdateItemQuery(columns, itemID)
 	log.Printf("DEBUG - UpdateItem - Executing query: %s\n", updateItemQuery)
-	ish.Database.ExecuteWriteQuery(r.Context(), updateItemQuery, values)
+	_, err = ish.Database.ExecuteWriteQuery(r.Context(), updateItemQuery, values)
+	if err != nil {
+		log.Printf("ERROR - UpdateItem - Database Update: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	// rowID, err := queryResult.LastInsertId()
 	// if err != nil {
 
@@ -166,7 +187,12 @@ var deleteNeighorQuery = "DELETE FROM items WHERE ItemID=?"
 
 func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
 	itemID := strings.TrimPrefix(r.URL.Path, "/items/")
-	ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
+	_, err := ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
+	if err != nil {
+		log.Printf("ERROR - DeleteItem - Database Delete: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	// handleGetAllItems(w, r)
 }
 
