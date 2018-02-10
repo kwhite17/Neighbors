@@ -44,7 +44,6 @@ func (ssh SamaritanServiceHandler) handleCreateSamaritan(w http.ResponseWriter, 
 		columns = append(columns, k)
 	}
 	createSamaritanQuery := buildCreateSamaritanQuery(columns)
-	log.Printf("DEBUG - CreateSamaritan - Executing query: %s\n", createSamaritanQuery)
 	ssh.Database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
 }
 
@@ -67,11 +66,16 @@ func (ssh SamaritanServiceHandler) handleGetSamaritan(w http.ResponseWriter, r *
 	}
 }
 
-var getSingleSamaritanQuery = "SELECT Username, Email, Phone, Location from samaritans where Username=?"
+var getSingleSamaritanQuery = "SELECT SamaritanID, Username, Email, Phone, Location from samaritans where SamaritanID=?"
 
 func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWriter, r *http.Request, username string) {
 	log.Println("Fetching user: " + username)
-	result := ssh.Database.ExecuteReadQuery(r.Context(), getSingleSamaritanQuery, []interface{}{username})
+	result, err := ssh.Database.ExecuteReadQuery(r.Context(), getSingleSamaritanQuery, []interface{}{username})
+	if err != nil {
+		log.Printf("ERROR - GetSingleSamaritan - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -82,10 +86,15 @@ func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWrite
 	w.Write(response)
 }
 
-var getAllSamaritansQuery = "SELECT Username, Email, Phone, Location from samaritans"
+var getAllSamaritansQuery = "SELECT SamaritanID, Username, Email, Phone, Location from samaritans"
 
 func (ssh SamaritanServiceHandler) handleGetAllSamaritans(w http.ResponseWriter, r *http.Request) {
-	result := ssh.Database.ExecuteReadQuery(r.Context(), getAllSamaritansQuery, nil)
+	result, err := ssh.Database.ExecuteReadQuery(r.Context(), getAllSamaritansQuery, nil)
+	if err != nil {
+		log.Printf("ERROR - GetAllSamaritans - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -113,7 +122,6 @@ func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, 
 		}
 	}
 	updateSamaritanQuery := buildUpdateSamaritanQuery(columns, userData["Username"])
-	log.Printf("DEBUG - UpdateSamaritan - Executing query: %s\n", updateSamaritanQuery)
 	ssh.Database.ExecuteWriteQuery(r.Context(), updateSamaritanQuery, values)
 }
 
@@ -127,7 +135,7 @@ func buildUpdateSamaritanQuery(columns []string, username string) string {
 
 }
 
-var deleteNeighorQuery = "DELETE FROM samaritans WHERE Username=?"
+var deleteNeighorQuery = "DELETE FROM samaritans WHERE SamaritanID=?"
 
 func (ssh SamaritanServiceHandler) handleDeleteSamaritan(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimPrefix(r.URL.Path, "/samaritans/")
@@ -139,14 +147,16 @@ func (ssh SamaritanServiceHandler) handleDeleteSamaritan(w http.ResponseWriter, 
 func buildJsonResposne(result *sql.Rows) ([]byte, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
+		var samaritanID interface{}
 		var username string
 		var email interface{}
 		var phone interface{}
 		var location string
 		responseItem := make(map[string]interface{})
-		if err := result.Scan(&username, &email, &phone, &location); err != nil {
+		if err := result.Scan(&samaritanID, &username, &email, &phone, &location); err != nil {
 			return nil, err
 		}
+		responseItem["SamaritanID"] = samaritanID
 		responseItem["Username"] = username
 		responseItem["Email"] = email
 		responseItem["Phone"] = phone

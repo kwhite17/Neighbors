@@ -35,6 +35,7 @@ func (nsh NeighborServiceHandler) handleCreateNeighbor(w http.ResponseWriter, r 
 	err := decoder.Decode(&userData)
 	if err != nil {
 		log.Printf("ERROR - CreateNeighbor - User Data Decode: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	values := make([]interface{}, 0)
@@ -44,8 +45,12 @@ func (nsh NeighborServiceHandler) handleCreateNeighbor(w http.ResponseWriter, r 
 		columns = append(columns, k)
 	}
 	createNeighborQuery := nsh.buildCreateNeighborQuery(columns)
-	log.Printf("DEBUG - CreateNeighbor - Executing query: %s\n", createNeighborQuery)
-	nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
+	_, err = nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
+	if err != nil {
+		log.Printf("ERROR - CreateNeighbor - Database Insert: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (nsh NeighborServiceHandler) buildCreateNeighborQuery(columns []string) string {
@@ -67,11 +72,15 @@ func (nsh NeighborServiceHandler) handleGetNeighbor(w http.ResponseWriter, r *ht
 	}
 }
 
-var getSingleNeighborQuery = "SELECT Username, Email, Phone, Location from neighbors where Username=?"
+var getSingleNeighborQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors where NeighborID=?"
 
 func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter, r *http.Request, username string) {
-	log.Println("Fetching user: " + username)
-	result := nsh.Database.ExecuteReadQuery(r.Context(), getSingleNeighborQuery, []interface{}{username})
+	result, err := nsh.Database.ExecuteReadQuery(r.Context(), getSingleNeighborQuery, []interface{}{username})
+	if err != nil {
+		log.Printf("ERROR - GetSingleNeighbor - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -82,10 +91,15 @@ func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter,
 	w.Write(response)
 }
 
-var getAllNeighborsQuery = "SELECT Username, Email, Phone, Location from neighbors"
+var getAllNeighborsQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors"
 
 func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r *http.Request) {
-	result := nsh.Database.ExecuteReadQuery(r.Context(), getAllNeighborsQuery, nil)
+	result, err := nsh.Database.ExecuteReadQuery(r.Context(), getAllNeighborsQuery, nil)
+	if err != nil {
+		log.Printf("ERROR - GetAllNeighbors - Database Read: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 	defer result.Close()
 	response, err := buildJsonResposne(result)
 	if err != nil {
@@ -113,8 +127,12 @@ func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r 
 		}
 	}
 	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["Username"])
-	log.Printf("DEBUG - UpdateNeighbor - Executing query: %s\n", updateNeighborQuery)
-	nsh.Database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
+	_, err = nsh.Database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
+	if err != nil {
+		log.Printf("ERROR - UpdateNeighbor - Database Update: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func buildUpdateNeighborQuery(columns []string, username string) string {
@@ -127,26 +145,33 @@ func buildUpdateNeighborQuery(columns []string, username string) string {
 
 }
 
-var deleteNeighorQuery = "DELETE FROM neighbors WHERE Username=?"
+var deleteNeighorQuery = "DELETE FROM neighbors WHERE NeighborID=?"
 
 func (nsh NeighborServiceHandler) handleDeleteNeighbor(w http.ResponseWriter, r *http.Request) {
 	username := strings.TrimPrefix(r.URL.Path, "/neighbors/")
 	w.Write([]byte("Deleting user data for " + username + "\n"))
-	nsh.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
+	_, err := nsh.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{username})
+	if err != nil {
+		log.Printf("ERROR - DeleteNeighbor - Database Delete: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 }
 
 func buildJsonResposne(result *sql.Rows) ([]byte, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
+		var neighborId interface{}
 		var username string
 		var email interface{}
 		var phone interface{}
 		var location string
 		responseItem := make(map[string]interface{})
-		if err := result.Scan(&username, &email, &phone, &location); err != nil {
+		if err := result.Scan(&neighborId, &username, &email, &phone, &location); err != nil {
 			return nil, err
 		}
+		responseItem["NeighborID"] = neighborId
 		responseItem["Username"] = username
 		responseItem["Email"] = email
 		responseItem["Phone"] = phone

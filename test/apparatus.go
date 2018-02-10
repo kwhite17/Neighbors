@@ -73,12 +73,14 @@ func RecordServiceRequest(service http.Handler, req *http.Request) *http.Respons
 
 func buildTestSamaritans() map[string][]interface{} {
 	samaritans := make(map[string][]interface{})
-	samaritans["testUser"] = []interface{}{"testUser", "testUser", "Somerville"}
+	samaritans["testUserSomerville"] = []interface{}{"testUser", "testUser", "Somerville"}
+	samaritans["testUserDetroit"] = []interface{}{"testUser", "testUser", "Detroit"}
 	return samaritans
 }
 func buildTestNeighbors() map[string][]interface{} {
 	neighbors := make(map[string][]interface{})
-	neighbors["testUser"] = []interface{}{"testUser", "testUser", "Somerville"}
+	neighbors["testUserSomerville"] = []interface{}{"testUser", "testUser", "Somerville"}
+	neighbors["testUserDetroit"] = []interface{}{"testUser", "testUser", "Detroit"}
 	return neighbors
 }
 
