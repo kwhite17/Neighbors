@@ -3,6 +3,7 @@ package samaritans
 import (
 	"database/sql"
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -77,13 +78,24 @@ func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWrite
 		return
 	}
 	defer result.Close()
-	response, err := buildJsonResposne(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
-		log.Printf("ERROR - GetSamaritan - ResponseBuilding: %v\n", err)
+		log.Printf("ERROR - GetSingleSamaritan - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(response)
+	t, err := template.ParseFiles("../templates/samaritans/samaritan.html")
+	if err != nil {
+		log.Printf("ERROR - GetSingleSamaritan - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response[0])
+	if err != nil {
+		log.Printf("ERROR - GetSingleSamaritan - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 var getAllSamaritansQuery = "SELECT SamaritanID, Username, Email, Phone, Location from samaritans"
@@ -96,13 +108,24 @@ func (ssh SamaritanServiceHandler) handleGetAllSamaritans(w http.ResponseWriter,
 		return
 	}
 	defer result.Close()
-	response, err := buildJsonResposne(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetSamaritan - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(response)
+	t, err := template.ParseFiles("../templates/samaritans/samaritans.html")
+	if err != nil {
+		log.Printf("ERROR - GetSamaritan - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response)
+	if err != nil {
+		log.Printf("ERROR - GetSamaritan - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, r *http.Request) {
@@ -144,7 +167,7 @@ func (ssh SamaritanServiceHandler) handleDeleteSamaritan(w http.ResponseWriter, 
 
 }
 
-func buildJsonResposne(result *sql.Rows) ([]byte, error) {
+func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
 		var samaritanID interface{}
@@ -163,9 +186,18 @@ func buildJsonResposne(result *sql.Rows) ([]byte, error) {
 		responseItem["Location"] = location
 		response = append(response, responseItem)
 	}
-	jsonResult, err := json.Marshal(response)
+	return response, nil
+}
+
+func buildJsonResponse(result *sql.Rows) ([]byte, error) {
+	data, err := buildGenericResponse(result)
+	if err != nil {
+		return nil, err
+	}
+	jsonResult, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 	return jsonResult, nil
+
 }

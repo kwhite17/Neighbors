@@ -3,9 +3,10 @@ package samaritans
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/kwhite17/Neighbors/test"
@@ -13,16 +14,16 @@ import (
 
 var service = SamaritanServiceHandler{Database: test.TestConnection}
 
-func TestGetAllNeighbors(t *testing.T) {
+func TestGetAllSamaritans(t *testing.T) {
 	test.PopulateSamaritansTable()
 	defer test.CleanSamaritansTable()
 
 	req, _ := http.NewRequest("GET", "http://localhost:8080/samaritans/", nil)
 	response := test.RecordServiceRequest(service, req)
-	data := make([]map[string]interface{}, 0)
-	json.NewDecoder(response.Body).Decode(&data)
-	if len(data) < 1 {
-		t.Errorf("GetAllSamaritans Failure - Expected: %v, Actual: %v\n", 1, len(data))
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, "testUser") {
+		t.Errorf("GetAllSamaritans Failure - Expected html to contain 'table' or 'testUser'")
 	}
 }
 
@@ -74,14 +75,10 @@ func TestGetSingleSamaritan(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("GetSingleSamaritan Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
-	data := make([]map[string]interface{}, 0)
-	json.NewDecoder(response.Body).Decode(&data)
-	log.Println(data)
-	if len(data) != 1 {
-		t.Fatalf("GetSingleSamaritan Failure - Expected: %v, Actual: %v\n", 1, len(data))
-	}
-	if int64(data[0]["SamaritanID"].(float64)) != ids[1] {
-		t.Errorf("GetSingleSamaritan Failure - Expected: %v, Actual: %v\n", int(ids[1]), data[0]["SamaritanID"])
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, strconv.Itoa(int(ids[1]))) {
+		t.Errorf("GetSingleSamaritan Failure - Expected html to contain 'strong' or correct ID")
 	}
 }
 

@@ -3,6 +3,7 @@ package items
 import (
 	"database/sql"
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -101,20 +102,24 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := buildJsonResponse(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte(response))
-	// tmpl, err := template.ParseFiles("templates/items.html")
-	// if err != nil {
-	// 	log.Printf("ERROR - GetItem - Template Rendering: %v\n", err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	// // tmpl.Execute(w, response)
+	t, err := template.ParseFiles("../templates/items/item.html")
+	if err != nil {
+		log.Printf("ERROR - GetItem - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response[0])
+	if err != nil {
+		log.Printf("ERROR - GetItem - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 var getAllItemsQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items"
@@ -127,20 +132,24 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := buildJsonResponse(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
-		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
+		log.Printf("ERROR - GetAllItems - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write([]byte(response))
-	// tmpl, err := template.ParseFiles("templates/items.html")
-	// if err != nil {
-	// 	log.Printf("ERROR - GetItem - Template Rendering: %v\n", err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
-	// tmpl.Execute(w, response)
+	t, err := template.ParseFiles("../templates/items/items.html")
+	if err != nil {
+		log.Printf("ERROR - GetAllItems - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response)
+	if err != nil {
+		log.Printf("ERROR - GetAllItems - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -196,7 +205,7 @@ func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Re
 	// handleGetAllItems(w, r)
 }
 
-func buildGenericResposne(result *sql.Rows) ([]map[string]interface{}, error) {
+func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
 		var id int
@@ -210,7 +219,7 @@ func buildGenericResposne(result *sql.Rows) ([]map[string]interface{}, error) {
 			&dropoffLocation); err != nil {
 			return nil, err
 		}
-		responseItem["ItemId"] = id
+		responseItem["ItemID"] = id
 		responseItem["Category"] = category
 		responseItem["Gender"] = gender
 		responseItem["Size"] = size
@@ -222,7 +231,7 @@ func buildGenericResposne(result *sql.Rows) ([]map[string]interface{}, error) {
 }
 
 func buildJsonResponse(result *sql.Rows) ([]byte, error) {
-	data, err := buildGenericResposne(result)
+	data, err := buildGenericResponse(result)
 	if err != nil {
 		return nil, err
 	}

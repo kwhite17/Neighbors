@@ -3,6 +3,7 @@ package neighbors
 import (
 	"database/sql"
 	"encoding/json"
+	"html/template"
 	"log"
 	"net/http"
 	"strings"
@@ -82,13 +83,24 @@ func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter,
 		return
 	}
 	defer result.Close()
-	response, err := buildJsonResposne(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(response)
+	t, err := template.ParseFiles("../templates/neighbors/neighbor.html")
+	if err != nil {
+		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response[0])
+	if err != nil {
+		log.Printf("ERROR - GetNeighbor - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 var getAllNeighborsQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors"
@@ -101,13 +113,24 @@ func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r
 		return
 	}
 	defer result.Close()
-	response, err := buildJsonResposne(result)
+	response, err := buildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.Write(response)
+	t, err := template.ParseFiles("../templates/neighbors/neighbors.html")
+	if err != nil {
+		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	err = t.Execute(w, response)
+	if err != nil {
+		log.Printf("ERROR - GetNeighbor - Template Resolution: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
@@ -159,28 +182,37 @@ func (nsh NeighborServiceHandler) handleDeleteNeighbor(w http.ResponseWriter, r 
 
 }
 
-func buildJsonResposne(result *sql.Rows) ([]byte, error) {
+func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
-		var neighborId interface{}
+		var neighborID interface{}
 		var username string
 		var email interface{}
 		var phone interface{}
 		var location string
 		responseItem := make(map[string]interface{})
-		if err := result.Scan(&neighborId, &username, &email, &phone, &location); err != nil {
+		if err := result.Scan(&neighborID, &username, &email, &phone, &location); err != nil {
 			return nil, err
 		}
-		responseItem["NeighborID"] = neighborId
+		responseItem["NeighborID"] = neighborID
 		responseItem["Username"] = username
 		responseItem["Email"] = email
 		responseItem["Phone"] = phone
 		responseItem["Location"] = location
 		response = append(response, responseItem)
 	}
-	jsonResult, err := json.Marshal(response)
+	return response, nil
+}
+
+func buildJsonResponse(result *sql.Rows) ([]byte, error) {
+	data, err := buildGenericResponse(result)
+	if err != nil {
+		return nil, err
+	}
+	jsonResult, err := json.Marshal(data)
 	if err != nil {
 		return nil, err
 	}
 	return jsonResult, nil
+
 }

@@ -3,9 +3,11 @@ package items
 import (
 	"bytes"
 	"encoding/json"
-	"log"
+	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
+	"strings"
 	"testing"
 
 	"github.com/kwhite17/Neighbors/test"
@@ -17,16 +19,16 @@ func TestGetAllItems(t *testing.T) {
 	defer test.CleanNeighborsTable()
 	defer test.CleanItemsTable()
 	defer test.CleanSamaritansTable()
-	itemIds, err := test.PopulateItemsTable()
+	_, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
 	req, _ := http.NewRequest("GET", "http://localhost:8080/items/", nil)
 	response := test.RecordServiceRequest(service, req)
-	data := make([]map[string]interface{}, 0)
-	json.NewDecoder(response.Body).Decode(&data)
-	if len(data) != len(itemIds) {
-		t.Errorf("GetAllItems Failure - Expected: %v, Actual: %v\n", len(itemIds), len(data))
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, "testItem") {
+		t.Errorf("GetAllNeighbors Failure - Expected html to contain 'table' or 'testItem'")
 	}
 }
 
@@ -94,14 +96,11 @@ func TestGetSingleItem(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("GetSingleItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
-	data := make([]map[string]interface{}, 0)
-	json.NewDecoder(response.Body).Decode(&data)
-	log.Println(data)
-	if len(data) != 1 {
-		t.Fatalf("GetSingleItem Failure - Expected: %v, Actual: %v\n", 1, len(data))
-	}
-	if int64(data[0]["ItemId"].(float64)) != itemIds[1] {
-		t.Errorf("GetSingleItem Failure - Expected: %v, Actual: %v\n", int(itemIds[1]), data[0]["ItemId"])
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	fmt.Println(htmlStr)
+	if !strings.Contains(htmlStr, "Item Request") || !strings.Contains(htmlStr, strconv.Itoa(int(itemIds[1]))) {
+		t.Errorf("GetAllNeighbors Failure - Expected html to contain 'ItemReques' or correct ID")
 	}
 }
 

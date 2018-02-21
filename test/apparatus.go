@@ -92,14 +92,14 @@ func buildTestItems() map[string][]interface{} {
 }
 
 func CleanNeighborsTable() {
-	for k := range testNeighbors {
-		TestConnection.ExecuteWriteQuery(context.Background(), deleteTestNeighborsQuery, []interface{}{k})
+	for _, v := range testNeighbors {
+		TestConnection.ExecuteWriteQuery(context.Background(), deleteTestNeighborsQuery, []interface{}{v[0]})
 	}
 }
 
 func CleanSamaritansTable() {
-	for k := range testSamaritans {
-		TestConnection.ExecuteWriteQuery(context.Background(), deleteTestSamaritansQuery, []interface{}{k})
+	for _, v := range testSamaritans {
+		TestConnection.ExecuteWriteQuery(context.Background(), deleteTestSamaritansQuery, []interface{}{v[0]})
 	}
 }
 
