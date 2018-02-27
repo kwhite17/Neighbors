@@ -35,6 +35,11 @@ func TestCreateSamaritan(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("CreateSamaritan Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
+		t.Errorf("CreateNeighbor Failure - Expected html to contain 'strong'")
+	}
 }
 
 func TestDeleteSamaritan(t *testing.T) {
@@ -56,11 +61,16 @@ func TestUpdateItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	jsonBytes, err := json.Marshal(map[string]interface{}{"Email": "kevinwhite1710@gmail.com"})
+	jsonBytes, err := json.Marshal(map[string]interface{}{"Location": "Tokyo", "SamaritanID": strconv.Itoa(int(ids[0]))})
 	req, _ := http.NewRequest("PUT", "http://localhost:8080/samaritans/"+string(ids[0]), bytes.NewBuffer(jsonBytes))
 	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("UpdateSamaritan Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
+		t.Errorf("UpdateSamaritan Failure - Expected: html to contain 'strong', Actual: %v\n", htmlStr)
 	}
 }
 
@@ -86,6 +96,6 @@ func buildTestSamaritan() map[string]interface{} {
 	samaritan := make(map[string]interface{})
 	samaritan["Username"] = "testItem"
 	samaritan["Password"] = "testItem"
-	samaritan["Location"] = "Somerville"
+	samaritan["Location"] = "Tokyo"
 	return samaritan
 }

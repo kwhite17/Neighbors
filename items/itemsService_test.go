@@ -46,6 +46,11 @@ func TestCreateItem(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("CreateItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Shelter") {
+		t.Errorf("CreateItem Failure - Expected: html to contain 'strong', Actual: %v\n", htmlStr)
+	}
 }
 
 func TestDeleteItem(t *testing.T) {
@@ -75,11 +80,16 @@ func TestUpdateItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	jsonBytes, err := json.Marshal(map[string]interface{}{"Fulfiller": samaritanIds[0]})
-	req, _ := http.NewRequest("PUT", "http://localhost:8080/items/"+string(itemIds[0]), bytes.NewBuffer(jsonBytes))
+	jsonBytes, err := json.Marshal(map[string]interface{}{"DropoffLocation": "Shelter", "Fulfiller": samaritanIds[0], "ItemID": strconv.FormatInt(itemIds[0], 10)})
+	req, _ := http.NewRequest("PUT", "http://localhost:8080/items/"+strconv.FormatInt(itemIds[0], 10), bytes.NewBuffer(jsonBytes))
 	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("UpdateItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Shelter") {
+		t.Errorf("UpdateItem Failure - Expected html to contain 'strong' or 'testItem'")
 	}
 }
 
@@ -109,6 +119,6 @@ func buildTestItem(requestorId int64) map[string]interface{} {
 	item["Category"] = "testItem"
 	item["Size"] = "M"
 	item["Requestor"] = requestorId
-	item["DropoffLocation"] = "Home"
+	item["DropoffLocation"] = "Shelter"
 	return item
 }

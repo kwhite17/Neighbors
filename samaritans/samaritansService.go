@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/database"
@@ -45,7 +46,25 @@ func (ssh SamaritanServiceHandler) handleCreateSamaritan(w http.ResponseWriter, 
 		columns = append(columns, k)
 	}
 	createSamaritanQuery := buildCreateSamaritanQuery(columns)
-	ssh.Database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
+	result, err := ssh.Database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
+	if err != nil {
+		log.Printf("ERROR - CreateSamaritan - Database Insert: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("ERROR - CreateSamaritan - Database Result Parsing: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
+	if err != nil {
+		log.Printf("ERROR - CreateSamaritan - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	ssh.handleGetSingleSamaritan(w, req, strconv.FormatInt(id, 10))
 }
 
 func buildCreateSamaritanQuery(columns []string) string {
@@ -139,13 +158,25 @@ func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, 
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range userData {
-		if k != "Username" {
+		if k != "SamaritanID" {
 			values = append(values, v)
 			columns = append(columns, k)
 		}
 	}
-	updateSamaritanQuery := buildUpdateSamaritanQuery(columns, userData["Username"])
-	ssh.Database.ExecuteWriteQuery(r.Context(), updateSamaritanQuery, values)
+	updateSamaritanQuery := buildUpdateSamaritanQuery(columns, userData["SamaritanID"])
+	_, err = ssh.Database.ExecuteWriteQuery(r.Context(), updateSamaritanQuery, values)
+	if err != nil {
+		log.Printf("ERROR - UpdateSamaritan - Database Insert: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	req, err := http.NewRequest("GET", r.URL.String()+userData["SamaritanID"], nil)
+	if err != nil {
+		log.Printf("ERROR - UpdateSamaritan - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	ssh.handleGetSingleSamaritan(w, req, userData["SamaritanID"])
 }
 
 func buildUpdateSamaritanQuery(columns []string, username string) string {
@@ -154,7 +185,7 @@ func buildUpdateSamaritanQuery(columns []string, username string) string {
 		args = append(args, columns[i]+"=?")
 	}
 	argString := strings.Join(args, ",")
-	return "UPDATE samaritans SET " + argString + " WHERE Username='" + username + "'"
+	return "UPDATE samaritans SET " + argString + " WHERE SamaritanID='" + username + "'"
 
 }
 

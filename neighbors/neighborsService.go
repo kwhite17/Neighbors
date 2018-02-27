@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/database"
@@ -46,12 +47,25 @@ func (nsh NeighborServiceHandler) handleCreateNeighbor(w http.ResponseWriter, r 
 		columns = append(columns, k)
 	}
 	createNeighborQuery := nsh.buildCreateNeighborQuery(columns)
-	_, err = nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
+	result, err := nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
 	if err != nil {
 		log.Printf("ERROR - CreateNeighbor - Database Insert: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("ERROR - CreateNeighbor - Database Result Parsing: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
+	if err != nil {
+		log.Printf("ERROR - UpdateNeighbor - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	nsh.handleGetSingleNeighbor(w, req, strconv.FormatInt(id, 10))
 }
 
 func (nsh NeighborServiceHandler) buildCreateNeighborQuery(columns []string) string {
@@ -144,18 +158,25 @@ func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r 
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range userData {
-		if k != "Username" {
+		if k != "NeighborID" {
 			values = append(values, v)
 			columns = append(columns, k)
 		}
 	}
-	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["Username"])
+	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["NeighborID"])
 	_, err = nsh.Database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
 	if err != nil {
 		log.Printf("ERROR - UpdateNeighbor - Database Update: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
+	req, err := http.NewRequest("GET", r.URL.String()+userData["NeighborID"], nil)
+	if err != nil {
+		log.Printf("ERROR - UpdateNeighbor - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	nsh.handleGetSingleNeighbor(w, req, userData["NeighborID"])
 }
 
 func buildUpdateNeighborQuery(columns []string, username string) string {
@@ -164,7 +185,7 @@ func buildUpdateNeighborQuery(columns []string, username string) string {
 		args = append(args, columns[i]+"=?")
 	}
 	argString := strings.Join(args, ",")
-	return "UPDATE neighbors SET " + argString + " WHERE Username='" + username + "'"
+	return "UPDATE neighbors SET " + argString + " WHERE NeighborID='" + username + "'"
 
 }
 

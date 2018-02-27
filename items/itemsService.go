@@ -6,6 +6,7 @@ import (
 	"html/template"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/database"
@@ -59,18 +60,25 @@ func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Re
 	}
 	createItemQuery := ish.buildCreateItemQuery(columns)
 	log.Printf("DEBUG - CreateItem - Executing query: %s\n", createItemQuery)
-	_, err = ish.Database.ExecuteWriteQuery(r.Context(), createItemQuery, values)
+	result, err := ish.Database.ExecuteWriteQuery(r.Context(), createItemQuery, values)
 	if err != nil {
 		log.Printf("ERROR - CreateItem - Database Insert: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-	// rowID, err := queryResult.LastInsertId()
-	// if err != nil {
-
-	// }
-	// handleGetSingleItem(w, r, string(rowID))
+	id, err := result.LastInsertId()
+	if err != nil {
+		log.Printf("ERROR - CreateItem - Database Result Parsing: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
+	if err != nil {
+		log.Printf("ERROR - CreateItem - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	ish.handleGetSingleItem(w, req, strconv.FormatInt(id, 10))
 }
 
 func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {
@@ -160,14 +168,15 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 		log.Printf("ERROR - UpdateItem - User Data Decode: %v\n", err)
 		return
 	}
-	itemID := strings.TrimPrefix(r.URL.Path, "/items/")
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range itemData {
-		values = append(values, v)
-		columns = append(columns, k)
+		if k != "ItemID" {
+			values = append(values, v)
+			columns = append(columns, k)
+		}
 	}
-	updateItemQuery := ish.buildUpdateItemQuery(columns, itemID)
+	updateItemQuery := ish.buildUpdateItemQuery(columns, itemData["ItemID"].(string))
 	log.Printf("DEBUG - UpdateItem - Executing query: %s\n", updateItemQuery)
 	_, err = ish.Database.ExecuteWriteQuery(r.Context(), updateItemQuery, values)
 	if err != nil {
@@ -175,11 +184,14 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// rowID, err := queryResult.LastInsertId()
-	// if err != nil {
+	req, err := http.NewRequest("GET", r.URL.String()+itemData["ItemID"].(string), nil)
+	if err != nil {
+		log.Printf("ERROR - UpdateItem - Redirect Request: %v\n", err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	ish.handleGetSingleItem(w, req, itemData["ItemID"].(string))
 
-	// }
-	// handleGetSingleItem(w, r, string(rowID))
 }
 
 func (ish ItemServiceHandler) buildUpdateItemQuery(columns []string, itemID string) string {

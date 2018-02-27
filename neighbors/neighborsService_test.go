@@ -35,6 +35,11 @@ func TestCreateNeighbor(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("CreateNeighbor Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
+		t.Errorf("CreateNeighbor Failure - Expected html to contain 'strong'")
+	}
 }
 
 func TestDeleteNeighbor(t *testing.T) {
@@ -43,7 +48,7 @@ func TestDeleteNeighbor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("DELETE", "http://localhost:8080/neighbors/"+strconv.Itoa(int(ids[0])), nil)
+	req, _ := http.NewRequest("DELETE", "http://localhost:8080/neighbors/"+strconv.FormatInt(ids[0], 10), nil)
 	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("DeleteNeighbor Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
@@ -56,11 +61,16 @@ func TestUpdateItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	jsonBytes, err := json.Marshal(map[string]interface{}{"Email": "kevinwhite1710@gmail.com"})
-	req, _ := http.NewRequest("PUT", "http://localhost:8080/neighbors/"+string(ids[0]), bytes.NewBuffer(jsonBytes))
+	jsonBytes, err := json.Marshal(map[string]interface{}{"Location": "Tokyo", "NeighborID": strconv.Itoa(int(ids[0]))})
+	req, _ := http.NewRequest("PUT", "http://localhost:8080/neighbors/", bytes.NewBuffer(jsonBytes))
 	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
 		t.Errorf("UpdateNeighbor Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+	}
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlStr := string(htmlBytes)
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
+		t.Errorf("UpdateNeighbor Failure - Expected: html to contain 'strong', Actual: %v\n", htmlStr)
 	}
 }
 
@@ -70,14 +80,14 @@ func TestGetSingleNeighbor(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("GET", "http://localhost:8080/neighbors/"+strconv.Itoa(int(ids[1])), nil)
+	req, _ := http.NewRequest("GET", "http://localhost:8080/neighbors/"+strconv.FormatInt(ids[1], 10), nil)
 	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("GetSingleNeighbor Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
 	}
 	htmlBytes, _ := ioutil.ReadAll(response.Body)
 	htmlStr := string(htmlBytes)
-	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, strconv.Itoa(int(ids[1]))) {
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, strconv.FormatInt(ids[1], 10)) {
 		t.Errorf("GetAllNeighbors Failure - Expected html to contain 'strong' or correct ID")
 	}
 }
@@ -86,6 +96,6 @@ func buildTestNeighbor() map[string]interface{} {
 	neighbor := make(map[string]interface{})
 	neighbor["Username"] = "testItem"
 	neighbor["Password"] = "testItem"
-	neighbor["Location"] = "Somerville"
+	neighbor["Location"] = "Tokyo"
 	return neighbor
 }
