@@ -17,6 +17,40 @@ type NeighborServiceHandler struct {
 }
 
 func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/neighbors/"), "/")
+	switch pathArray[len(pathArray)-1] {
+	case "new":
+		t, err := template.ParseFiles("../templates/neighbors/new.html")
+		if err != nil {
+			log.Printf("ERROR - NewNeighbor - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - NewNeighbor - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	case "edit":
+		t, err := template.ParseFiles("../templates/neighbors/edit.html")
+		if err != nil {
+			log.Printf("ERROR - EditNeighbor - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - EditNeighbor - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	default:
+		nsh.requestMethodHandler(w, r)
+	}
+}
+
+func (nsh NeighborServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		nsh.handleCreateNeighbor(w, r)

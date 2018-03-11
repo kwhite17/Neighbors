@@ -20,9 +20,31 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		log.Panic("NOT YET IMPLEMENTED")
+		t, err := template.ParseFiles("../templates/items/new.html")
+		if err != nil {
+			log.Printf("ERROR - NewItem - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - NewItem - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	case "edit":
-		log.Panic("NOT YET IMPLEMENTED")
+		t, err := template.ParseFiles("../templates/items/edit.html")
+		if err != nil {
+			log.Printf("ERROR - EditItem - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - EditItem - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	default:
 		ish.requestMethodHandler(w, r)
 	}

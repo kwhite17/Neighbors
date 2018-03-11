@@ -15,6 +15,15 @@ import (
 
 var service = ItemServiceHandler{Database: test.TestConnection}
 
+func TestRenderNewItemForm(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://localhost:8080/items/new", nil)
+	response := test.RecordServiceRequest(service, req)
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlString := string(htmlBytes)
+	if !strings.Contains(htmlString, "/items/") || !strings.Contains(htmlString, "POST") {
+		t.Errorf("RenderNewItemsForm Failure - Expected html to contain '/items/' and 'POST', Actual: %s\n", htmlString)
+	}
+}
 func TestGetAllItems(t *testing.T) {
 	defer test.CleanNeighborsTable()
 	defer test.CleanItemsTable()

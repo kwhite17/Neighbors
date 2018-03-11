@@ -14,6 +14,31 @@ import (
 
 var service = NeighborServiceHandler{Database: test.TestConnection}
 
+func TestRenderNewNeighborForm(t *testing.T) {
+	req, _ := http.NewRequest("GET", "http://localhost:8080/neighbors/new", nil)
+	response := test.RecordServiceRequest(service, req)
+	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlString := string(htmlBytes)
+	if !strings.Contains(htmlString, "/neighbors/") || !strings.Contains(htmlString, "POST") {
+		t.Errorf("RenderNewNeighborForm Failure - Expected html to contain '/neighbors/' and 'POST', Actual: %s\n", htmlString)
+	}
+}
+
+// func TestRenderEditNeighborForm(t *testing.T) {
+// 	defer test.CleanNeighborsTable()
+// 	ids, err := test.PopulateNeighborsTable()
+// 	if err != nil {
+// 		t.Fatal(err)
+// 	}
+// 	req, _ := http.NewRequest("GET", "http://localhost:80808/neighbors/"+strconv.FormatInt(ids[0], 10)+"/edit", nil)
+// 	response := test.RecordServiceRequest(service, req)
+// 	htmlBytes, _ := ioutil.ReadAll(response.Body)
+// 	htmlString := string(htmlBytes)
+// 	if !strings.Contains(htmlString, "PUT") || !strings.Contains(htmlString, strconv.FormatInt(ids[0], 10)) {
+// 		t.Errorf("RenderEditNeighborForm Failure - Expected html to contain 'PUT' and %d, Actual: %s\n", ids[0], htmlString)
+// 	}
+// }
+
 func TestGetAllNeighbors(t *testing.T) {
 	test.PopulateNeighborsTable()
 	defer test.CleanNeighborsTable()

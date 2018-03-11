@@ -17,6 +17,40 @@ type SamaritanServiceHandler struct {
 }
 
 func (ssh SamaritanServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/samaritans/"), "/")
+	switch pathArray[len(pathArray)-1] {
+	case "new":
+		t, err := template.ParseFiles("../templates/samaritans/new.html")
+		if err != nil {
+			log.Printf("ERROR - NewSamaritan - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - NewSamaritan - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	case "edit":
+		t, err := template.ParseFiles("../templates/samaritans/edit.html")
+		if err != nil {
+			log.Printf("ERROR - EditSamaritan - Template Rendering: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		err = t.Execute(w, nil)
+		if err != nil {
+			log.Printf("ERROR - EditSamaritan - Response Sending: %v\n", err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+	default:
+		ssh.requestMethodHandler(w, r)
+	}
+}
+
+func (ssh SamaritanServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST":
 		ssh.handleCreateSamaritan(w, r)
