@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
+	"github.com/kwhite17/Neighbors/pkg/utils"
 )
 
 var templateDirectory = "../../templates/neighbors/"
@@ -18,22 +19,21 @@ type NeighborServiceHandler struct {
 	Database database.Datasource
 }
 
+func (nsh NeighborServiceHandler) GetDatasource() database.Datasource {
+	return nsh.Database
+}
+
 func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/neighbors/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
 		t, err := template.ParseFiles(templateDirectory + "new.html")
 		if err != nil {
-			log.Printf("ERROR - NewNeighbor - Template Rendering: %v\n", err)
+			log.Printf("ERROR - NewNeighbor - Template Parsing: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = t.Execute(w, nil)
-		if err != nil {
-			log.Printf("ERROR - NewNeighbor - Response Sending: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		utils.RenderTemplate(w, t, nil, "NewNeighbor")
 	case "edit":
 		t, err := template.ParseFiles(templateDirectory + "edit.html")
 		if err != nil {
@@ -41,12 +41,7 @@ func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = t.Execute(w, nil)
-		if err != nil {
-			log.Printf("ERROR - EditNeighbor - Response Sending: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		utils.RenderTemplate(w, t, nil, "EditNeighbor")
 	default:
 		nsh.requestMethodHandler(w, r)
 	}
@@ -112,7 +107,6 @@ func (nsh NeighborServiceHandler) buildCreateNeighborQuery(columns []string) str
 	}
 	argString := strings.Join(args, ",")
 	return "INSERT INTO neighbors (" + columnsString + ") VALUES (" + argString + ")"
-
 }
 
 func (nsh NeighborServiceHandler) handleGetNeighbor(w http.ResponseWriter, r *http.Request) {
@@ -133,7 +127,7 @@ func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter,
 		return
 	}
 	defer result.Close()
-	response, err := buildGenericResponse(result)
+	response, err := nsh.BuildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -145,12 +139,7 @@ func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter,
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, response[0])
-	if err != nil {
-		log.Printf("ERROR - GetNeighbor - Template Resolution: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.RenderTemplate(w, t, response[0], "EditNeighbor")
 }
 
 var getAllNeighborsQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors"
@@ -163,7 +152,7 @@ func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r
 		return
 	}
 	defer result.Close()
-	response, err := buildGenericResponse(result)
+	response, err := nsh.BuildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -175,12 +164,7 @@ func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, response)
-	if err != nil {
-		log.Printf("ERROR - GetNeighbor - Template Resolution: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.RenderTemplate(w, t, response, "GetNeighbor")
 }
 
 func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
@@ -200,19 +184,13 @@ func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r 
 		}
 	}
 	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["NeighborID"])
-	_, err = nsh.Database.ExecuteWriteQuery(r.Context(), updateNeighborQuery, values)
+	redirectReq, err := utils.HandleUpdateRequest(w, r, nsh, updateNeighborQuery, userData["NeighborID"], values)
 	if err != nil {
-		log.Printf("ERROR - UpdateNeighbor - Database Update: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	req, err := http.NewRequest("GET", r.URL.String()+userData["NeighborID"], nil)
-	if err != nil {
-		log.Printf("ERROR - UpdateNeighbor - Redirect Request: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	nsh.handleGetSingleNeighbor(w, req, userData["NeighborID"])
+	nsh.handleGetSingleNeighbor(w, redirectReq, userData["NeighborID"])
 }
 
 func buildUpdateNeighborQuery(columns []string, username string) string {
@@ -222,7 +200,6 @@ func buildUpdateNeighborQuery(columns []string, username string) string {
 	}
 	argString := strings.Join(args, ",")
 	return "UPDATE neighbors SET " + argString + " WHERE NeighborID='" + username + "'"
-
 }
 
 var deleteNeighorQuery = "DELETE FROM neighbors WHERE NeighborID=?"
@@ -236,10 +213,9 @@ func (nsh NeighborServiceHandler) handleDeleteNeighbor(w http.ResponseWriter, r 
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-
 }
 
-func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
+func (nsh NeighborServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
 		var neighborID interface{}
@@ -259,17 +235,4 @@ func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 		response = append(response, responseItem)
 	}
 	return response, nil
-}
-
-func buildJsonResponse(result *sql.Rows) ([]byte, error) {
-	data, err := buildGenericResponse(result)
-	if err != nil {
-		return nil, err
-	}
-	jsonResult, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return jsonResult, nil
-
 }

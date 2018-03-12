@@ -10,13 +10,18 @@ import (
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
+	"github.com/kwhite17/Neighbors/pkg/utils"
 )
+
+var templateDirectory = "../../templates/items/"
 
 type ItemServiceHandler struct {
 	Database database.Datasource
 }
 
-var templateDirectory = "../../templates/items/"
+func (ish ItemServiceHandler) GetDatasource() database.Datasource {
+	return ish.Database
+}
 
 func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
@@ -28,12 +33,7 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = t.Execute(w, nil)
-		if err != nil {
-			log.Printf("ERROR - NewItem - Response Sending: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		utils.RenderTemplate(w, t, nil, "NewItem")
 	case "edit":
 		t, err := template.ParseFiles(templateDirectory + "edit.html")
 		if err != nil {
@@ -41,12 +41,7 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		err = t.Execute(w, nil)
-		if err != nil {
-			log.Printf("ERROR - EditItem - Response Sending: %v\n", err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
+		utils.RenderTemplate(w, t, nil, "EditItem")
 	default:
 		ish.requestMethodHandler(w, r)
 	}
@@ -134,7 +129,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := buildGenericResponse(result)
+	response, err := ish.BuildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -146,12 +141,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, response[0])
-	if err != nil {
-		log.Printf("ERROR - GetItem - Template Resolution: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.RenderTemplate(w, t, response[0], "GetItem")
 }
 
 var getAllItemsQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items"
@@ -164,7 +154,7 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := buildGenericResponse(result)
+	response, err := ish.BuildGenericResponse(result)
 	if err != nil {
 		log.Printf("ERROR - GetAllItems - ResponseBuilding: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -176,12 +166,7 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = t.Execute(w, response)
-	if err != nil {
-		log.Printf("ERROR - GetAllItems - Template Resolution: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
+	utils.RenderTemplate(w, t, response, "GetAllItems")
 }
 
 func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -189,7 +174,7 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&itemData)
 	if err != nil {
-		log.Printf("ERROR - UpdateItem - User Data Decode: %v\n", err)
+		log.Printf("ERROR - UpdateItem - Item Data Decode: %v\n", err)
 		return
 	}
 	values := make([]interface{}, 0)
@@ -200,21 +185,15 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 			columns = append(columns, k)
 		}
 	}
-	updateItemQuery := ish.buildUpdateItemQuery(columns, itemData["ItemID"].(string))
-	log.Printf("DEBUG - UpdateItem - Executing query: %s\n", updateItemQuery)
-	_, err = ish.Database.ExecuteWriteQuery(r.Context(), updateItemQuery, values)
+	itemID := itemData["ItemID"].(string)
+	updateItemQuery := ish.buildUpdateItemQuery(columns, itemID)
+	redirectReq, err := utils.HandleUpdateRequest(w, r, ish, updateItemQuery, itemID, values)
 	if err != nil {
-		log.Printf("ERROR - UpdateItem - Database Update: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	req, err := http.NewRequest("GET", r.URL.String()+itemData["ItemID"].(string), nil)
-	if err != nil {
-		log.Printf("ERROR - UpdateItem - Redirect Request: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	ish.handleGetSingleItem(w, req, itemData["ItemID"].(string))
+	ish.handleGetSingleItem(w, redirectReq, itemID)
 
 }
 
@@ -241,7 +220,7 @@ func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Re
 	// handleGetAllItems(w, r)
 }
 
-func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
+func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 	response := make([]map[string]interface{}, 0)
 	for result.Next() {
 		var id int
@@ -264,17 +243,4 @@ func buildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
 		response = append(response, responseItem)
 	}
 	return response, nil
-}
-
-func buildJsonResponse(result *sql.Rows) ([]byte, error) {
-	data, err := buildGenericResponse(result)
-	if err != nil {
-		return nil, err
-	}
-	jsonResult, err := json.Marshal(data)
-	if err != nil {
-		return nil, err
-	}
-	return jsonResult, nil
-
 }
