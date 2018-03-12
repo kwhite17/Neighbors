@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/kwhite17/Neighbors/database"
+	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
 var TestConnection = database.NeighborsDatabase

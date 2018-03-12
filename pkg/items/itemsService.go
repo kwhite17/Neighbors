@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kwhite17/Neighbors/database"
+	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
 type ItemServiceHandler struct {
@@ -20,7 +20,7 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles("../templates/items/new.html")
+		t, err := template.ParseFiles("../../templates/items/new.html")
 		if err != nil {
 			log.Printf("ERROR - NewItem - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +33,7 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	case "edit":
-		t, err := template.ParseFiles("../templates/items/edit.html")
+		t, err := template.ParseFiles("../../templates/items/edit.html")
 		if err != nil {
 			log.Printf("ERROR - EditItem - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -138,7 +138,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../templates/items/item.html")
+	t, err := template.ParseFiles("../../templates/items/item.html")
 	if err != nil {
 		log.Printf("ERROR - GetItem - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -168,7 +168,7 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../templates/items/items.html")
+	t, err := template.ParseFiles("../../templates/items/items.html")
 	if err != nil {
 		log.Printf("ERROR - GetAllItems - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)

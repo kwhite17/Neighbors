@@ -10,7 +10,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kwhite17/Neighbors/test"
+	"github.com/kwhite17/Neighbors/pkg/test"
 )
 
 var service = ItemServiceHandler{Database: test.TestConnection}
