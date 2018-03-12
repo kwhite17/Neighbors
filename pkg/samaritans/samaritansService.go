@@ -12,6 +12,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
+var templateDirectory = "../../templates/samaritans/"
+
 type SamaritanServiceHandler struct {
 	Database database.Datasource
 }
@@ -20,7 +22,7 @@ func (ssh SamaritanServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/samaritans/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles("../../templates/samaritans/new.html")
+		t, err := template.ParseFiles(templateDirectory + "new.html")
 		if err != nil {
 			log.Printf("ERROR - NewSamaritan - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +35,7 @@ func (ssh SamaritanServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 			return
 		}
 	case "edit":
-		t, err := template.ParseFiles("../../templates/samaritans/edit.html")
+		t, err := template.ParseFiles(templateDirectory + "edit.html")
 		if err != nil {
 			log.Printf("ERROR - EditSamaritan - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -137,7 +139,7 @@ func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWrite
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../../templates/samaritans/samaritan.html")
+	t, err := template.ParseFiles(templateDirectory + "samaritan.html")
 	if err != nil {
 		log.Printf("ERROR - GetSingleSamaritan - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +169,7 @@ func (ssh SamaritanServiceHandler) handleGetAllSamaritans(w http.ResponseWriter,
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../../templates/samaritans/samaritans.html")
+	t, err := template.ParseFiles(templateDirectory + "samaritans.html")
 	if err != nil {
 		log.Printf("ERROR - GetSamaritan - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)

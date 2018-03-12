@@ -12,6 +12,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
+var templateDirectory = "../../templates/neighbors/"
+
 type NeighborServiceHandler struct {
 	Database database.Datasource
 }
@@ -20,7 +22,7 @@ func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/neighbors/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles("../../templates/neighbors/new.html")
+		t, err := template.ParseFiles(templateDirectory + "new.html")
 		if err != nil {
 			log.Printf("ERROR - NewNeighbor - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -33,7 +35,7 @@ func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 			return
 		}
 	case "edit":
-		t, err := template.ParseFiles("../../templates/neighbors/edit.html")
+		t, err := template.ParseFiles(templateDirectory + "edit.html")
 		if err != nil {
 			log.Printf("ERROR - EditNeighbor - Template Rendering: %v\n", err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -137,7 +139,7 @@ func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter,
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../../templates/neighbors/neighbor.html")
+	t, err := template.ParseFiles(templateDirectory + "neighbor.html")
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -167,7 +169,7 @@ func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles("../../templates/neighbors/neighbors.html")
+	t, err := template.ParseFiles(templateDirectory + "neighbors.html")
 	if err != nil {
 		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
