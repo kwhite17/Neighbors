@@ -3,7 +3,6 @@ package neighbors
 import (
 	"database/sql"
 	"encoding/json"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,21 +26,19 @@ func (nsh NeighborServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/neighbors/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles(templateDirectory + "new.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
 		if err != nil {
-			log.Printf("ERROR - NewNeighbor - Template Parsing: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "NewNeighbor")
 	case "edit":
-		t, err := template.ParseFiles(templateDirectory + "edit.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"edit.html")
 		if err != nil {
-			log.Printf("ERROR - EditNeighbor - Template Rendering: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "EditNeighbor")
 	default:
 		nsh.requestMethodHandler(w, r)
 	}
@@ -120,51 +117,35 @@ func (nsh NeighborServiceHandler) handleGetNeighbor(w http.ResponseWriter, r *ht
 var getSingleNeighborQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors where NeighborID=?"
 
 func (nsh NeighborServiceHandler) handleGetSingleNeighbor(w http.ResponseWriter, r *http.Request, username string) {
-	result, err := nsh.Database.ExecuteReadQuery(r.Context(), getSingleNeighborQuery, []interface{}{username})
+	response, err := utils.HandleGetSingleElementRequest(r, nsh, getSingleNeighborQuery, username)
 	if err != nil {
-		log.Printf("ERROR - GetSingleNeighbor - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer result.Close()
-	response, err := nsh.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response[0], templateDirectory+"neighbor.html")
 	if err != nil {
-		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "neighbor.html")
-	if err != nil {
-		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response[0], "EditNeighbor")
 }
 
 var getAllNeighborsQuery = "SELECT NeighborID, Username, Email, Phone, Location from neighbors"
 
 func (nsh NeighborServiceHandler) handleGetAllNeighbors(w http.ResponseWriter, r *http.Request) {
-	result, err := nsh.Database.ExecuteReadQuery(r.Context(), getAllNeighborsQuery, nil)
+	response, err := utils.HandleGetAllElementsRequest(r, nsh, getAllNeighborsQuery)
 	if err != nil {
-		log.Printf("ERROR - GetAllNeighbors - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer result.Close()
-	response, err := nsh.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response, templateDirectory+"neighbors.html")
 	if err != nil {
-		log.Printf("ERROR - GetNeighbor - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "neighbors.html")
-	if err != nil {
-		log.Printf("ERROR - GetNeighbor - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response, "GetNeighbor")
 }
 
 func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r *http.Request) {
@@ -184,7 +165,7 @@ func (nsh NeighborServiceHandler) handleUpdateNeighbor(w http.ResponseWriter, r 
 		}
 	}
 	updateNeighborQuery := buildUpdateNeighborQuery(columns, userData["NeighborID"])
-	redirectReq, err := utils.HandleUpdateRequest(w, r, nsh, updateNeighborQuery, userData["NeighborID"], values)
+	redirectReq, err := utils.HandleUpdateRequest(r, nsh, updateNeighborQuery, userData["NeighborID"], values)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

@@ -3,7 +3,6 @@ package samaritans
 import (
 	"database/sql"
 	"encoding/json"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -28,21 +27,19 @@ func (ssh SamaritanServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Requ
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/samaritans/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles(templateDirectory + "new.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
 		if err != nil {
-			log.Printf("ERROR - NewSamaritan - Template Rendering: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "NewSamaritan")
 	case "edit":
-		t, err := template.ParseFiles(templateDirectory + "edit.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"edit.html")
 		if err != nil {
-			log.Printf("ERROR - EditSamaritan - Template Rendering: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "EditSamaritan")
 	default:
 		ssh.requestMethodHandler(w, r)
 	}
@@ -121,52 +118,35 @@ func (ssh SamaritanServiceHandler) handleGetSamaritan(w http.ResponseWriter, r *
 var getSingleSamaritanQuery = "SELECT SamaritanID, Username, Email, Phone, Location from samaritans where SamaritanID=?"
 
 func (ssh SamaritanServiceHandler) handleGetSingleSamaritan(w http.ResponseWriter, r *http.Request, username string) {
-	log.Println("Fetching user: " + username)
-	result, err := ssh.Database.ExecuteReadQuery(r.Context(), getSingleSamaritanQuery, []interface{}{username})
+	response, err := utils.HandleGetSingleElementRequest(r, ssh, getSingleSamaritanQuery, username)
 	if err != nil {
-		log.Printf("ERROR - GetSingleSamaritan - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer result.Close()
-	response, err := ssh.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response[0], templateDirectory+"samaritan.html")
 	if err != nil {
-		log.Printf("ERROR - GetSingleSamaritan - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "samaritan.html")
-	if err != nil {
-		log.Printf("ERROR - GetSingleSamaritan - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response[0], "GetSingleSamaritan")
 }
 
 var getAllSamaritansQuery = "SELECT SamaritanID, Username, Email, Phone, Location from samaritans"
 
 func (ssh SamaritanServiceHandler) handleGetAllSamaritans(w http.ResponseWriter, r *http.Request) {
-	result, err := ssh.Database.ExecuteReadQuery(r.Context(), getAllSamaritansQuery, nil)
+	response, err := utils.HandleGetAllElementsRequest(r, ssh, getAllSamaritansQuery)
 	if err != nil {
-		log.Printf("ERROR - GetAllSamaritans - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	defer result.Close()
-	response, err := ssh.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response, templateDirectory+"samaritans.html")
 	if err != nil {
-		log.Printf("ERROR - GetSamaritan - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "samaritans.html")
-	if err != nil {
-		log.Printf("ERROR - GetSamaritan - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response, "GetSamaritan")
 }
 
 func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, r *http.Request) {
@@ -186,7 +166,7 @@ func (ssh SamaritanServiceHandler) handleUpdateSamaritan(w http.ResponseWriter, 
 		}
 	}
 	updateSamaritanQuery := buildUpdateSamaritanQuery(columns, userData["SamaritanID"])
-	redirectReq, err := utils.HandleUpdateRequest(w, r, ssh, updateSamaritanQuery, userData["SamaritanID"], values)
+	redirectReq, err := utils.HandleUpdateRequest(r, ssh, updateSamaritanQuery, userData["SamaritanID"], values)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

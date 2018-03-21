@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
@@ -28,17 +27,19 @@ func BuildJsonResponse(result *sql.Rows, sh ServiceHandler) ([]byte, error) {
 	return jsonResult, nil
 }
 
-func RenderTemplate(w http.ResponseWriter, t *template.Template, data interface{}, function string) error {
-	err := t.Execute(w, data)
+func RenderTemplate(w http.ResponseWriter, data interface{}, templatePath string) error {
+	t, err := template.ParseFiles(templatePath)
 	if err != nil {
-		log.Printf("ERROR - "+function+" - Response Sending: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return err
+		return fmt.Errorf("ERROR - Parse Template - Template Creation: %v\n", err)
+	}
+	err = t.Execute(w, data)
+	if err != nil {
+		return fmt.Errorf("ERROR - Render Template - Response Sending: %v\n", err)
 	}
 	return nil
 }
 
-func HandleUpdateRequest(w http.ResponseWriter, r *http.Request, sh ServiceHandler, updateQuery string, updateID string, updateValues []interface{}) (*http.Request, error) {
+func HandleUpdateRequest(r *http.Request, sh ServiceHandler, updateQuery string, updateID string, updateValues []interface{}) (*http.Request, error) {
 	_, err := sh.GetDatasource().ExecuteWriteQuery(r.Context(), updateQuery, updateValues)
 	if err != nil {
 		return nil, fmt.Errorf("ERROR - UpdateElement - Database Insert: %v\n", err)
@@ -48,4 +49,30 @@ func HandleUpdateRequest(w http.ResponseWriter, r *http.Request, sh ServiceHandl
 		return nil, fmt.Errorf("ERROR - UpdateElement - Redirect Request: %v\n", err)
 	}
 	return req, nil
+}
+
+func HandleGetAllElementsRequest(r *http.Request, sh ServiceHandler, getAllQuery string) ([]map[string]interface{}, error) {
+	result, err := sh.GetDatasource().ExecuteReadQuery(r.Context(), getAllQuery, nil)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - GetAllElements - Database Read: %v\n", err)
+	}
+	defer result.Close()
+	response, err := sh.BuildGenericResponse(result)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - GetAllElements - Response Building: %v\n", err)
+	}
+	return response, nil
+}
+
+func HandleGetSingleElementRequest(r *http.Request, sh ServiceHandler, getSingleElementQuery string, elementId string) ([]map[string]interface{}, error) {
+	result, err := sh.GetDatasource().ExecuteReadQuery(r.Context(), getSingleElementQuery, []interface{}{elementId})
+	defer result.Close()
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - GetSingleElement - Database Read: %v\n", err)
+	}
+	response, err := sh.BuildGenericResponse(result)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - GetSingleElement - Response Building: %v\n", err)
+	}
+	return response, nil
 }

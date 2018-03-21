@@ -3,7 +3,6 @@ package items
 import (
 	"database/sql"
 	"encoding/json"
-	"html/template"
 	"log"
 	"net/http"
 	"strconv"
@@ -27,21 +26,19 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := template.ParseFiles(templateDirectory + "new.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
 		if err != nil {
-			log.Printf("ERROR - NewItem - Template Rendering: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "NewItem")
 	case "edit":
-		t, err := template.ParseFiles(templateDirectory + "edit.html")
+		err := utils.RenderTemplate(w, nil, templateDirectory+"edit.html")
 		if err != nil {
-			log.Printf("ERROR - EditItem - Template Rendering: %v\n", err)
+			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		utils.RenderTemplate(w, t, nil, "EditItem")
 	default:
 		ish.requestMethodHandler(w, r)
 	}
@@ -122,51 +119,35 @@ func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Reque
 var getSingleItemQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items where ItemID=?"
 
 func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string) {
-	result, err := ish.Database.ExecuteReadQuery(r.Context(), getSingleItemQuery, []interface{}{itemID})
-	defer result.Close()
+	response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
 	if err != nil {
-		log.Printf("ERROR - GetItem - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := ish.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response[0], templateDirectory+"item.html")
 	if err != nil {
-		log.Printf("ERROR - GetItem - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "item.html")
-	if err != nil {
-		log.Printf("ERROR - GetItem - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response[0], "GetItem")
 }
 
 var getAllItemsQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items"
 
 func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request) {
-	result, err := ish.Database.ExecuteReadQuery(r.Context(), getAllItemsQuery, nil)
-	defer result.Close()
+	response, err := utils.HandleGetAllElementsRequest(r, ish, getAllItemsQuery)
 	if err != nil {
-		log.Printf("ERROR - GetAllItems - Database Read: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	response, err := ish.BuildGenericResponse(result)
+	err = utils.RenderTemplate(w, response, templateDirectory+"items.html")
 	if err != nil {
-		log.Printf("ERROR - GetAllItems - ResponseBuilding: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	t, err := template.ParseFiles(templateDirectory + "items.html")
-	if err != nil {
-		log.Printf("ERROR - GetAllItems - Template Creation: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	utils.RenderTemplate(w, t, response, "GetAllItems")
 }
 
 func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
@@ -187,7 +168,7 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 	}
 	itemID := itemData["ItemID"].(string)
 	updateItemQuery := ish.buildUpdateItemQuery(columns, itemID)
-	redirectReq, err := utils.HandleUpdateRequest(w, r, ish, updateItemQuery, itemID, values)
+	redirectReq, err := utils.HandleUpdateRequest(r, ish, updateItemQuery, itemID, values)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
