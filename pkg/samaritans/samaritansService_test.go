@@ -104,8 +104,8 @@ func TestGetSingleSamaritan(t *testing.T) {
 
 func buildTestSamaritan() map[string]interface{} {
 	samaritan := make(map[string]interface{})
-	samaritan["Username"] = "testItem"
-	samaritan["Password"] = "testItem"
+	samaritan["Username"] = "testUser"
+	samaritan["Password"] = "testUser"
 	samaritan["Location"] = "Tokyo"
 	return samaritan
 }

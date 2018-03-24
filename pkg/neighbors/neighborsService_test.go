@@ -119,8 +119,8 @@ func TestGetSingleNeighbor(t *testing.T) {
 
 func buildTestNeighbor() map[string]interface{} {
 	neighbor := make(map[string]interface{})
-	neighbor["Username"] = "testItem"
-	neighbor["Password"] = "testItem"
+	neighbor["Username"] = "testUser"
+	neighbor["Password"] = "testUser"
 	neighbor["Location"] = "Tokyo"
 	return neighbor
 }

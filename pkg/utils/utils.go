@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"strconv"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
@@ -75,4 +76,33 @@ func HandleGetSingleElementRequest(r *http.Request, sh ServiceHandler, getSingle
 		return nil, fmt.Errorf("ERROR - GetSingleElement - Response Building: %v\n", err)
 	}
 	return response, nil
+}
+
+func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQuery func(columns []string) string) (*http.Request, error) {
+	data := make(map[string]interface{})
+	decoder := json.NewDecoder(r.Body)
+	err := decoder.Decode(&data)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - CreateElement - Data Decode: %v\n", err)
+	}
+	values := make([]interface{}, 0)
+	columns := make([]string, 0)
+	for k, v := range data {
+		values = append(values, v)
+		columns = append(columns, k)
+	}
+	createElementQuery := buildCreateQuery(columns)
+	result, err := sh.GetDatasource().ExecuteWriteQuery(r.Context(), createElementQuery, values)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - CreateElement - Database Insert: %v\n", err)
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - CreateElement - Database Result Parsing: %v\n", err)
+	}
+	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - CreateElement - Redirect Request: %v\n", err)
+	}
+	return req, nil
 }

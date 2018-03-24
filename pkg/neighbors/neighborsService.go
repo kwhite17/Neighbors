@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
@@ -60,40 +59,13 @@ func (nsh NeighborServiceHandler) requestMethodHandler(w http.ResponseWriter, r 
 }
 
 func (nsh NeighborServiceHandler) handleCreateNeighbor(w http.ResponseWriter, r *http.Request) {
-	userData := make(map[string]string)
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&userData)
+	redirectReq, err := utils.HandleCreateElementRequest(r, nsh, nsh.buildCreateNeighborQuery)
 	if err != nil {
-		log.Printf("ERROR - CreateNeighbor - User Data Decode: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	values := make([]interface{}, 0)
-	columns := make([]string, 0)
-	for k, v := range userData {
-		values = append(values, v)
-		columns = append(columns, k)
-	}
-	createNeighborQuery := nsh.buildCreateNeighborQuery(columns)
-	result, err := nsh.Database.ExecuteWriteQuery(r.Context(), createNeighborQuery, values)
-	if err != nil {
-		log.Printf("ERROR - CreateNeighbor - Database Insert: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Printf("ERROR - CreateNeighbor - Database Result Parsing: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
-	if err != nil {
-		log.Printf("ERROR - UpdateNeighbor - Redirect Request: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	nsh.handleGetSingleNeighbor(w, req, strconv.FormatInt(id, 10))
+	nsh.handleGetSingleNeighbor(w, redirectReq, strings.TrimPrefix(redirectReq.URL.Path, "/neighbors/"))
 }
 
 func (nsh NeighborServiceHandler) buildCreateNeighborQuery(columns []string) string {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
@@ -60,41 +59,13 @@ func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *htt
 }
 
 func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request) {
-	itemData := make(map[string]interface{})
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&itemData)
+	redirectReq, err := utils.HandleCreateElementRequest(r, ish, ish.buildCreateItemQuery)
 	if err != nil {
-		log.Printf("ERROR - CreateItem - Item Data Decode: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	values := make([]interface{}, 0)
-	columns := make([]string, 0)
-	for k, v := range itemData {
-		values = append(values, v)
-		columns = append(columns, k)
-	}
-	createItemQuery := ish.buildCreateItemQuery(columns)
-	log.Printf("DEBUG - CreateItem - Executing query: %s\n", createItemQuery)
-	result, err := ish.Database.ExecuteWriteQuery(r.Context(), createItemQuery, values)
-	if err != nil {
-		log.Printf("ERROR - CreateItem - Database Insert: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Printf("ERROR - CreateItem - Database Result Parsing: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
-	if err != nil {
-		log.Printf("ERROR - CreateItem - Redirect Request: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	ish.handleGetSingleItem(w, req, strconv.FormatInt(id, 10))
+	ish.handleGetSingleItem(w, redirectReq, strings.TrimPrefix(redirectReq.URL.Path, "/items/"))
 }
 
 func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/utils"
@@ -61,42 +60,16 @@ func (ssh SamaritanServiceHandler) requestMethodHandler(w http.ResponseWriter, r
 }
 
 func (ssh SamaritanServiceHandler) handleCreateSamaritan(w http.ResponseWriter, r *http.Request) {
-	userData := make(map[string]string)
-	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&userData)
+	redirectReq, err := utils.HandleCreateElementRequest(r, ssh, ssh.buildCreateSamaritanQuery)
 	if err != nil {
-		log.Printf("ERROR - CreateSamaritan - User Data Decode: %v\n", err)
-		return
-	}
-	values := make([]interface{}, 0)
-	columns := make([]string, 0)
-	for k, v := range userData {
-		values = append(values, v)
-		columns = append(columns, k)
-	}
-	createSamaritanQuery := buildCreateSamaritanQuery(columns)
-	result, err := ssh.Database.ExecuteWriteQuery(r.Context(), createSamaritanQuery, values)
-	if err != nil {
-		log.Printf("ERROR - CreateSamaritan - Database Insert: %v\n", err)
+		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		log.Printf("ERROR - CreateSamaritan - Database Result Parsing: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	req, err := http.NewRequest("GET", r.URL.String()+strconv.FormatInt(id, 10), nil)
-	if err != nil {
-		log.Printf("ERROR - CreateSamaritan - Redirect Request: %v\n", err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	ssh.handleGetSingleSamaritan(w, req, strconv.FormatInt(id, 10))
+	ssh.handleGetSingleSamaritan(w, redirectReq, strings.TrimPrefix(redirectReq.URL.Path, "/samaritans/"))
 }
 
-func buildCreateSamaritanQuery(columns []string) string {
+func (ssh SamaritanServiceHandler) buildCreateSamaritanQuery(columns []string) string {
 	columnsString := strings.Join(columns, ",")
 	args := make([]string, 0)
 	for i := 0; i < len(columns); i++ {
