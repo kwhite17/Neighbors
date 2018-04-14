@@ -7,6 +7,8 @@ import (
 	"html/template"
 	"net/http"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
@@ -105,4 +107,29 @@ func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQ
 		return nil, fmt.Errorf("ERROR - CreateElement - Redirect Request: %v\n", err)
 	}
 	return req, nil
+}
+
+func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) (bool, error) {
+	cookie, err := r.Cookie("NeighborsAuth")
+	if err != nil {
+		return false, nil
+	}
+	cookieQuery := "SELECT CreatedAt FROM UserSession WHERE CookieID = ? AND Username = ?"
+	usernameIDPair := strings.Split(cookie.Value, "-")
+	rows, err := sh.GetDatasource().ExecuteReadQuery(nil, cookieQuery, []interface{}{usernameIDPair[0], usernameIDPair[1]})
+	if err != nil {
+		return false, fmt.Errorf("ERROR - Authentication - Database Read: %v", err)
+	}
+	for rows.Next() {
+		var createTime int64
+		err := rows.Scan(&createTime)
+		if err != nil {
+			return false, fmt.Errorf("ERROR - Authentication - Result Parse: %v", err)
+		}
+		if time.Now().Unix()-createTime >= int64(cookie.MaxAge) {
+			return false, nil
+		}
+		return true, nil
+	}
+	return false, nil
 }

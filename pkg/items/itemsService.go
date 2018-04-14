@@ -11,7 +11,7 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/utils"
 )
 
-var templateDirectory = "../../templates/items/"
+var templateDirectory = "/templates/items/"
 
 type ItemServiceHandler struct {
 	Database database.Datasource
@@ -22,6 +22,24 @@ func (ish ItemServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	// authenticated, err := utils.IsAuthenticated(ish, w, r)
+	// if !authenticated {
+	// 	if err != nil {
+	// 		log.Println(err)
+	// 		err = nil
+	// 	}
+	// 	response, err := http.Get("/login/")
+	// 	if err != nil {
+	// 		w.WriteHeader(http.StatusInternalServerError)
+	// 	}
+	// 	page, err := ioutil.ReadAll(response.Body)
+	// 	if err != nil {
+	// 		w.WriteHeader(http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	w.Write(page)
+	// 	return
+	// }
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
