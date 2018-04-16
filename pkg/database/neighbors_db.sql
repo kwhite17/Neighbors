@@ -14,11 +14,11 @@ CREATE TABLE IF NOT EXISTS users (
 
 
 CREATE TABLE userSession (
- SessionKey TEXT PRIMARY KEY,
+ SessionKey VARCHAR(100) PRIMARY KEY,
  UserID INT NOT NULL,
  LoginTime BIGINT not null,
  LastSeenTime BIGINT not null,
- FOREIGN KEY UserID
+ FOREIGN KEY UserID (UserID)
  REFERENCES users(ID)
  ON DELETE CASCADE
 );
@@ -33,10 +33,10 @@ CREATE TABLE IF NOT EXISTS items (
     Requestor INT NOT NULL,
     Fulfiller INT,
     OrderStatus ENUM('REQUESTED', 'ASSIGNED', 'PURCHASED', 'DELIVERED'),
-    FOREIGN KEY Requestor
+    FOREIGN KEY Requestor (Requestor)
     REFERENCES users(ID)
     ON DELETE CASCADE,
-    FOREIGN KEY Fulfiller
+    FOREIGN KEY Fulfiller (Fulfiller)
     REFERENCES users(ID)
     ON DELETE CASCADE
 );
