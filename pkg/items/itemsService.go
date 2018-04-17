@@ -12,7 +12,6 @@ import (
 )
 
 var serviceEndpoint = "/items/"
-var templateDirectory = "./templates/"
 
 type ItemServiceHandler struct {
 	Database database.Datasource
@@ -44,14 +43,14 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
+		err := utils.RenderTemplate(w, nil, serviceEndpoint+"new.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	case "edit":
-		err := utils.RenderTemplate(w, nil, templateDirectory+"edit.html")
+		err := utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -115,7 +114,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = utils.RenderTemplate(w, response[0], templateDirectory+"item.html")
+	err = utils.RenderTemplate(w, response[0], serviceEndpoint+"item.html")
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -132,7 +131,7 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = utils.RenderTemplate(w, response, templateDirectory+"items.html")
+	err = utils.RenderTemplate(w, response, serviceEndpoint+"items.html")
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

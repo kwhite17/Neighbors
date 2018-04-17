@@ -8,9 +8,7 @@ import (
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 	"github.com/kwhite17/Neighbors/pkg/items"
-	"github.com/kwhite17/Neighbors/pkg/samaritans"
-
-	"github.com/kwhite17/Neighbors/pkg/neighbors"
+	"github.com/kwhite17/Neighbors/pkg/users"
 )
 
 func main() {
@@ -24,10 +22,9 @@ func main() {
 	}
 	log.Println(directory)
 	mux := http.NewServeMux()
-	mux.Handle("/neighbors/", neighbors.NeighborServiceHandler{Database: database.NeighborsDatabase})
-	mux.Handle("/samaritans/", samaritans.SamaritanServiceHandler{Database: database.NeighborsDatabase})
+	mux.Handle("/users/", users.UserServiceHandler{Database: database.NeighborsDatabase})
 	mux.Handle("/items/", items.ItemServiceHandler{Database: database.NeighborsDatabase})
-	mux.Handle("/templates/", http.FileServer(http.Dir(directory+"/templates/")))
+	mux.Handle("/templates/", http.StripPrefix("/templates/", http.FileServer(http.Dir(directory+"/templates/"))))
 
 	http.ListenAndServe(":8080", mux)
 }

@@ -12,7 +12,6 @@ import (
 )
 
 var serviceEndpoint = "/users/"
-var templateDirectory = "./templates/"
 
 type UserServiceHandler struct {
 	Database database.Datasource
@@ -44,14 +43,14 @@ func (ush UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
+		err := utils.RenderTemplate(w, nil, serviceEndpoint+"new.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	case "edit":
-		err := utils.RenderTemplate(w, nil, templateDirectory+"edit.html")
+		err := utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -114,7 +113,7 @@ func (ush UserServiceHandler) handleGetSingleUser(w http.ResponseWriter, r *http
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = utils.RenderTemplate(w, response[0], templateDirectory+"user.html")
+	err = utils.RenderTemplate(w, response[0], serviceEndpoint+"user.html")
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -131,7 +130,7 @@ func (ush UserServiceHandler) handleGetAllUsers(w http.ResponseWriter, r *http.R
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	err = utils.RenderTemplate(w, response, templateDirectory+"users.html")
+	err = utils.RenderTemplate(w, response, serviceEndpoint+"users.html")
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

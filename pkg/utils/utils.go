@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"time"
@@ -31,7 +33,11 @@ func BuildJsonResponse(result *sql.Rows, sh ServiceHandler) ([]byte, error) {
 }
 
 func RenderTemplate(w http.ResponseWriter, data interface{}, templatePath string) error {
-	t, err := template.ParseFiles(templatePath)
+	cwd, err := os.Getwd()
+	if err != nil {
+		return fmt.Errorf("ERROR - Parse Template - Working Directory: %v\n", err)
+	}
+	t, err := template.ParseFiles(filepath.Join(cwd, "templates", templatePath))
 	if err != nil {
 		return fmt.Errorf("ERROR - Parse Template - Template Creation: %v\n", err)
 	}

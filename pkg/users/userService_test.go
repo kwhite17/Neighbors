@@ -7,6 +7,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"testing"
@@ -17,8 +18,10 @@ import (
 var service = UserServiceHandler{Database: test.TestConnection}
 
 func createServer() *httptest.Server {
+	directory, _ := os.Getwd()
 	testMux := http.NewServeMux()
 	testMux.Handle("/users/", service)
+	testMux.Handle("/templates/", http.StripPrefix("/templates/", http.FileServer(http.Dir(directory+"/templates/"))))
 	return httptest.NewServer(testMux)
 }
 
