@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
@@ -14,10 +16,32 @@ import (
 
 var service = UserServiceHandler{Database: test.TestConnection}
 
+func createServer() *httptest.Server {
+	testMux := http.NewServeMux()
+	testMux.Handle("/users/", service)
+	return httptest.NewServer(testMux)
+}
+
 func TestRenderNewUserForm(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://localhost:8080/users/new", nil)
-	response := test.RecordServiceRequest(service, req)
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+
+	response, err := client.Get(ts.URL + "/users/new")
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("NewUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlString := string(htmlBytes)
 	if !strings.Contains(htmlString, "/users/") || !strings.Contains(htmlString, "POST") {
 		t.Errorf("RenderNewUserForm Failure - Expected html to contain '/users/' and 'POST', Actual: %s\n", htmlString)
@@ -26,11 +50,26 @@ func TestRenderNewUserForm(t *testing.T) {
 
 func TestGetAllUsers(t *testing.T) {
 	test.PopulateUsersTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
 	defer test.CleanUsersTable()
 
-	req, _ := http.NewRequest("GET", "http://localhost:8080/users/", nil)
-	response := test.RecordServiceRequest(service, req)
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	response, err := client.Get(ts.URL + "/users/")
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("GetAllUsers Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, "testUser") {
 		t.Errorf("GetAllUsers Failure - Expected html to contain 'table' or 'testUser'")
@@ -38,67 +77,117 @@ func TestGetAllUsers(t *testing.T) {
 }
 
 func TestCreateUser(t *testing.T) {
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
 	defer test.CleanUsersTable()
+
 	jsonBytes, _ := json.Marshal(buildTestUser())
-	req, _ := http.NewRequest("POST", "http://localhost:8080/users/", bytes.NewBuffer(jsonBytes))
-	response := test.RecordServiceRequest(service, req)
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("CreateUser Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+	response, err := client.Post(ts.URL+"/users/", "application/json", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("CreateUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
-		t.Errorf("CreateNeighbor Failure - Expected html to contain 'strong'")
+		t.Errorf("CreateNeighbor Failure - Expected html to contain 'strong' and 'Tokyo', Actual: %s\n", htmlStr)
 	}
 }
 
 func TestDeleteUser(t *testing.T) {
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
 	defer test.CleanUsersTable()
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("DELETE", "http://localhost:8080/users/"+strconv.Itoa(int(ids[0])), nil)
-	response := test.RecordServiceRequest(service, req)
+
+	req, _ := http.NewRequest("DELETE", ts.URL+"/users/"+strconv.FormatInt(ids[0], 10), nil)
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("DeleteUser Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+		t.Errorf("DeleteUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
 	}
 }
 
 func TestUpdateItem(t *testing.T) {
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
 	defer test.CleanUsersTable()
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	jsonBytes, err := json.Marshal(map[string]interface{}{"Location": "Tokyo", "UserID": strconv.Itoa(int(ids[0]))})
-	req, _ := http.NewRequest("PUT", "http://localhost:8080/users/"+string(ids[0]), bytes.NewBuffer(jsonBytes))
-	response := test.RecordServiceRequest(service, req)
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("UpdateUser Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+
+	jsonBytes, err := json.Marshal(map[string]interface{}{"Location": "Tokyo", "ID": strconv.Itoa(int(ids[0]))})
+	req, _ := http.NewRequest("PUT", ts.URL+"/users/"+strconv.FormatInt(ids[0], 10), bytes.NewBuffer(jsonBytes))
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("UpdateUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Tokyo") {
-		t.Errorf("UpdateUser Failure - Expected: html to contain 'strong', Actual: %v\n", htmlStr)
+		t.Errorf("UpdateUser Failure - Expected: html to contain 'strong', Actual: %s\n", htmlStr)
 	}
 }
 
 func TestGetSingleUser(t *testing.T) {
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
 	defer test.CleanUsersTable()
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("GET", "http://localhost:8080/users/"+strconv.Itoa(int(ids[1])), nil)
-	response := test.RecordServiceRequest(service, req)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("GetSingleUser Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+
+	response, err := client.Get(ts.URL + "/users/" + strconv.FormatInt(ids[1], 10))
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("GetSingleUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
-	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, strconv.Itoa(int(ids[1]))) {
-		t.Errorf("GetSingleUser Failure - Expected html to contain 'strong' or correct ID")
+	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, strconv.FormatInt(ids[1], 10)) {
+		t.Errorf("GetSingleUser Failure - Expected html to contain 'strong' or correct ID, Actual: %s\n", htmlStr)
 	}
 }
 
@@ -107,5 +196,6 @@ func buildTestUser() map[string]interface{} {
 	user["Username"] = "testUser"
 	user["Password"] = "testUser"
 	user["Location"] = "Tokyo"
+	user["Role"] = "SAMARITAN"
 	return user
 }

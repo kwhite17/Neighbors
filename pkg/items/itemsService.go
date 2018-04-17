@@ -11,7 +11,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/utils"
 )
 
-var templateDirectory = "/templates/items/"
+var serviceEndpoint = "/items/"
+var templateDirectory = "./templates/"
 
 type ItemServiceHandler struct {
 	Database database.Datasource
@@ -40,7 +41,7 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	// 	w.Write(page)
 	// 	return
 	// }
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, "/items/"), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
 		err := utils.RenderTemplate(w, nil, templateDirectory+"new.html")
@@ -83,7 +84,7 @@ func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Re
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	ish.handleGetSingleItem(w, redirectReq, strings.TrimPrefix(redirectReq.URL.Path, "/items/"))
+	ish.handleGetSingleItem(w, redirectReq, strings.TrimPrefix(redirectReq.URL.Path, serviceEndpoint))
 }
 
 func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {
@@ -98,14 +99,14 @@ func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {
 }
 
 func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request) {
-	if itemID := strings.TrimPrefix(r.URL.Path, "/items/"); len(itemID) > 0 {
+	if itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(itemID) > 0 {
 		ish.handleGetSingleItem(w, r, itemID)
 	} else {
 		ish.handleGetAllItems(w, r)
 	}
 }
 
-var getSingleItemQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items where ItemID=?"
+var getSingleItemQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items where ID=?"
 
 func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string) {
 	response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
@@ -122,7 +123,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 	}
 }
 
-var getAllItemsQuery = "SELECT ItemID, Category, Gender, Size, Quantity, DropoffLocation from items"
+var getAllItemsQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items"
 
 func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request) {
 	response, err := utils.HandleGetAllElementsRequest(r, ish, getAllItemsQuery)
@@ -150,12 +151,12 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range itemData {
-		if k != "ItemID" {
+		if k != "ID" {
 			values = append(values, v)
 			columns = append(columns, k)
 		}
 	}
-	itemID := itemData["ItemID"].(string)
+	itemID := itemData["ID"].(string)
 	updateItemQuery := ish.buildUpdateItemQuery(columns, itemID)
 	redirectReq, err := utils.HandleUpdateRequest(r, ish, updateItemQuery, itemID, values)
 	if err != nil {
@@ -173,14 +174,14 @@ func (ish ItemServiceHandler) buildUpdateItemQuery(columns []string, itemID stri
 		args = append(args, columns[i]+"=?")
 	}
 	argString := strings.Join(args, ",")
-	return "UPDATE items SET " + argString + " WHERE ItemID='" + itemID + "'"
+	return "UPDATE items SET " + argString + " WHERE ID='" + itemID + "'"
 
 }
 
-var deleteNeighorQuery = "DELETE FROM items WHERE ItemID=?"
+var deleteNeighorQuery = "DELETE FROM items WHERE ID=?"
 
 func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
-	itemID := strings.TrimPrefix(r.URL.Path, "/items/")
+	itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
 	_, err := ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
 	if err != nil {
 		log.Printf("ERROR - DeleteItem - Database Delete: %v\n", err)
@@ -204,7 +205,7 @@ func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 			&dropoffLocation); err != nil {
 			return nil, err
 		}
-		responseItem["ItemID"] = id
+		responseItem["ID"] = id
 		responseItem["Category"] = category
 		responseItem["Gender"] = gender
 		responseItem["Size"] = size

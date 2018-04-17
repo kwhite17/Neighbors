@@ -3,9 +3,10 @@ package items
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"strings"
 	"testing"
@@ -15,87 +16,150 @@ import (
 
 var service = ItemServiceHandler{Database: test.TestConnection}
 
+func createServer() *httptest.Server {
+	testMux := http.NewServeMux()
+	testMux.Handle("/items/", service)
+	return httptest.NewServer(testMux)
+}
 func TestRenderNewItemForm(t *testing.T) {
-	req, _ := http.NewRequest("GET", "http://localhost:8080/items/new", nil)
-	response := test.RecordServiceRequest(service, req)
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+
+	response, err := client.Get(ts.URL + "/items/new")
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("NewItem Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlString := string(htmlBytes)
 	if !strings.Contains(htmlString, "/items/") || !strings.Contains(htmlString, "POST") {
 		t.Errorf("RenderNewItemsForm Failure - Expected html to contain '/items/' and 'POST', Actual: %s\n", htmlString)
 	}
 }
 func TestGetAllItems(t *testing.T) {
-	defer test.CleanNeighborsTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+	defer test.CleanUsersTable()
 	defer test.CleanItemsTable()
-	defer test.CleanSamaritansTable()
-	_, err := test.PopulateItemsTable()
+	_, _, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("GET", "http://localhost:8080/items/", nil)
-	response := test.RecordServiceRequest(service, req)
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+
+	response, err := client.Get(ts.URL + "/items/")
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("GetAllItems Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
-	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, "testItem") {
-		t.Errorf("GetAllNeighbors Failure - Expected html to contain 'table' or 'testItem'")
+	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, "TESTITEM") {
+		t.Errorf("GetAllItems Failure - Expected html to contain 'table' or 'TESTITEM'")
 	}
 }
 
 func TestCreateItem(t *testing.T) {
-	defer test.CleanNeighborsTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+	defer test.CleanUsersTable()
 	defer test.CleanItemsTable()
-	defer test.CleanSamaritansTable()
-	ids, err := test.PopulateNeighborsTable()
+	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+
 	jsonBytes, _ := json.Marshal(buildTestItem(ids[0]))
-	req, _ := http.NewRequest("POST", "http://localhost:8080/items/", bytes.NewBuffer(jsonBytes))
-	response := test.RecordServiceRequest(service, req)
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("CreateItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+	response, err := client.Post(ts.URL+"/items/", "application/json", bytes.NewBuffer(jsonBytes))
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("CreateItem Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Shelter") {
-		t.Errorf("CreateItem Failure - Expected: html to contain 'strong', Actual: %v\n", htmlStr)
+		t.Errorf("CreateItem Failure - Expected: html to contain 'strong', Actual: %s\n", htmlStr)
 	}
 }
 
 func TestDeleteItem(t *testing.T) {
-	defer test.CleanNeighborsTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+	defer test.CleanUsersTable()
 	defer test.CleanItemsTable()
-	defer test.CleanSamaritansTable()
-	ids, err := test.PopulateItemsTable()
+	ids, _, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("DELETE", "http://localhost:8080/items/"+strconv.Itoa(int(ids[0])), nil)
-	response := test.RecordServiceRequest(service, req)
+
+	req, _ := http.NewRequest("DELETE", ts.URL+"/items/"+strconv.FormatInt(ids[0], 10), nil)
+	response, err := client.Do(req)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("DeleteItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+		t.Errorf("DeleteItem Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
 	}
 }
 
 func TestUpdateItem(t *testing.T) {
-	defer test.CleanNeighborsTable()
-	defer test.CleanSamaritansTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+	defer test.CleanUsersTable()
 	defer test.CleanItemsTable()
-	itemIds, err := test.PopulateItemsTable()
+	itemIds, neighborIds, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	samaritanIds, err := test.PopulateSamaritansTable()
+	jsonBytes, err := json.Marshal(map[string]interface{}{"DropoffLocation": "Shelter", "Fulfiller": neighborIds[0], "ID": strconv.FormatInt(itemIds[0], 10)})
+	req, _ := http.NewRequest("PUT", ts.URL+"/items/"+strconv.FormatInt(itemIds[0], 10), bytes.NewBuffer(jsonBytes))
+	response, err := client.Do(req)
 	if err != nil {
-		t.Fatal(err)
+		log.Println(err)
+		t.FailNow()
 	}
-	jsonBytes, err := json.Marshal(map[string]interface{}{"DropoffLocation": "Shelter", "Fulfiller": samaritanIds[0], "ItemID": strconv.FormatInt(itemIds[0], 10)})
-	req, _ := http.NewRequest("PUT", "http://localhost:8080/items/"+strconv.FormatInt(itemIds[0], 10), bytes.NewBuffer(jsonBytes))
-	response := test.RecordServiceRequest(service, req)
 	if response.StatusCode != http.StatusOK {
-		t.Errorf("UpdateItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+		t.Errorf("UpdateItem Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "strong") || !strings.Contains(htmlStr, "Shelter") {
 		t.Errorf("UpdateItem Failure - Expected html to contain 'strong' or 'testItem'")
@@ -103,30 +167,42 @@ func TestUpdateItem(t *testing.T) {
 }
 
 func TestGetSingleItem(t *testing.T) {
-	defer test.CleanNeighborsTable()
-	defer test.CleanSamaritansTable()
+	ts := createServer()
+	client := ts.Client()
+	defer ts.CloseClientConnections()
+	defer ts.Close()
+	defer test.CleanUsersTable()
 	defer test.CleanItemsTable()
-	itemIds, err := test.PopulateItemsTable()
+	itemIds, _, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
-	req, _ := http.NewRequest("GET", "http://localhost:8080/items/"+strconv.Itoa(int(itemIds[1])), nil)
-	response := test.RecordServiceRequest(service, req)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("GetSingleItem Failure - Expected: %v, Actual: %v\n", http.StatusOK, response.StatusCode)
+
+	response, err := client.Get(ts.URL + "/items/" + strconv.FormatInt(itemIds[1], 10))
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
 	}
-	htmlBytes, _ := ioutil.ReadAll(response.Body)
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("GetSingleItem Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+		t.FailNow()
+	}
+	htmlBytes, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		log.Println(err)
+		t.FailNow()
+	}
 	htmlStr := string(htmlBytes)
-	fmt.Println(htmlStr)
 	if !strings.Contains(htmlStr, "Item Request") || !strings.Contains(htmlStr, strconv.Itoa(int(itemIds[1]))) {
-		t.Errorf("GetAllNeighbors Failure - Expected html to contain 'ItemReques' or correct ID")
+		t.Errorf("GetSingleItem Failure - Expected html to contain 'strong' or correct ID, Actual: %s\n", htmlStr)
 	}
 }
 
 func buildTestItem(requestorId int64) map[string]interface{} {
 	item := make(map[string]interface{})
-	item["Category"] = "testItem"
+	item["Category"] = "TESTITEM"
 	item["Size"] = "M"
+	item["Quantity"] = 1
 	item["Requestor"] = requestorId
 	item["DropoffLocation"] = "Shelter"
 	return item

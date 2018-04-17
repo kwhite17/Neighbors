@@ -11,8 +11,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/utils"
 )
 
-var serviceEndpoint = "/neighbors/"
-var templateDirectory = "/templates" + serviceEndpoint
+var serviceEndpoint = "/users/"
+var templateDirectory = "./templates/"
 
 type UserServiceHandler struct {
 	Database database.Datasource
