@@ -2,6 +2,11 @@ package test
 
 import (
 	"context"
+	"fmt"
+	"strconv"
+	"time"
+
+	"github.com/kwhite17/Neighbors/pkg/utils"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
@@ -11,6 +16,7 @@ var createTestUsersQuery = "INSERT INTO users (Username, Password, Location, Rol
 var createTestItemsQuery = "INSERT INTO items (Category, Size, Quantity, DropoffLocation, Requestor) VALUES (?, ?, ?, ?, ?)"
 var deleteTestUsersQuery = "DELETE FROM users WHERE Username LIKE 'testUser%'"
 var deleteTestItemsQuery = "DELETE FROM items WHERE Category='TESTITEM'"
+var deleteTestSessionQuery = "DELETE FROM userSession WHERE SessionKey LIKE 'testKey-%'"
 var testUsers = buildTestUsers()
 var testItems = buildTestItems()
 
@@ -61,9 +67,24 @@ func buildTestItems() map[string][]interface{} {
 }
 
 func CleanUsersTable() {
-	TestConnection.ExecuteWriteQuery(context.Background(), deleteTestUsersQuery, []interface{}{})
+	TestConnection.ExecuteWriteQuery(context.Background(), deleteTestUsersQuery, nil)
 }
 
 func CleanItemsTable() {
-	TestConnection.ExecuteWriteQuery(context.Background(), deleteTestItemsQuery, []interface{}{})
+	TestConnection.ExecuteWriteQuery(context.Background(), deleteTestItemsQuery, nil)
+}
+
+func CleanUserSessionTable() {
+	TestConnection.ExecuteWriteQuery(context.Background(), deleteTestSessionQuery, nil)
+}
+
+func BuildUserSession(sh utils.ServiceHandler, userID int64) (string, error) {
+	userSessionQuery := "INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?)"
+	curTime := time.Now().UnixNano()
+	testKey := "testKey-" + strconv.FormatInt(curTime, 10)
+	_, err := sh.GetDatasource().ExecuteWriteQuery(context.Background(), userSessionQuery, []interface{}{testKey, userID, curTime, curTime})
+	if err != nil {
+		return "", fmt.Errorf("ERROR - BuildUserSession: %v", err)
+	}
+	return testKey, nil
 }

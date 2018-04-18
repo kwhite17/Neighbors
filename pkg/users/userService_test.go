@@ -25,41 +25,30 @@ func createServer() *httptest.Server {
 	return httptest.NewServer(testMux)
 }
 
-func TestRenderNewUserForm(t *testing.T) {
-	ts := createServer()
-	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-
-	response, err := client.Get(ts.URL + "/users/new")
-	if err != nil {
-		log.Println(err)
-		t.FailNow()
-	}
-	if response.StatusCode != http.StatusOK {
-		t.Errorf("NewUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
-		t.FailNow()
-	}
-	htmlBytes, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		log.Println(err)
-		t.FailNow()
-	}
-	htmlString := string(htmlBytes)
-	if !strings.Contains(htmlString, "/users/") || !strings.Contains(htmlString, "POST") {
-		t.Errorf("RenderNewUserForm Failure - Expected html to contain '/users/' and 'POST', Actual: %s\n", htmlString)
-	}
+func teardown(ts *httptest.Server) {
+	ts.CloseClientConnections()
+	ts.Close()
+	test.CleanUserSessionTable()
+	test.CleanUsersTable()
 }
 
 func TestGetAllUsers(t *testing.T) {
-	test.PopulateUsersTable()
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
+	defer teardown(ts)
+	ids, err := test.PopulateUsersTable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
-	response, err := client.Get(ts.URL + "/users/")
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/users/", nil)
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()
@@ -82,9 +71,7 @@ func TestGetAllUsers(t *testing.T) {
 func TestCreateUser(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
+	defer teardown(ts)
 
 	jsonBytes, _ := json.Marshal(buildTestUser())
 	response, err := client.Post(ts.URL+"/users/", "application/json", bytes.NewBuffer(jsonBytes))
@@ -110,15 +97,19 @@ func TestCreateUser(t *testing.T) {
 func TestDeleteUser(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
+	defer teardown(ts)
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
 	req, _ := http.NewRequest("DELETE", ts.URL+"/users/"+strconv.FormatInt(ids[0], 10), nil)
+	req.AddCookie(&cookie)
 	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -133,16 +124,20 @@ func TestDeleteUser(t *testing.T) {
 func TestUpdateItem(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
+	defer teardown(ts)
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
 	jsonBytes, err := json.Marshal(map[string]interface{}{"Location": "Tokyo", "ID": strconv.Itoa(int(ids[0]))})
 	req, _ := http.NewRequest("PUT", ts.URL+"/users/"+strconv.FormatInt(ids[0], 10), bytes.NewBuffer(jsonBytes))
+	req.AddCookie(&cookie)
 	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -173,8 +168,15 @@ func TestGetSingleUser(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
-	response, err := client.Get(ts.URL + "/users/" + strconv.FormatInt(ids[1], 10))
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/users/"+strconv.FormatInt(ids[1], 10), nil)
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()

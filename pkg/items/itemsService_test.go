@@ -24,13 +24,32 @@ func createServer() *httptest.Server {
 	testMux.Handle("/templates/", http.StripPrefix("/templates/", http.FileServer(http.Dir(directory+"/templates/"))))
 	return httptest.NewServer(testMux)
 }
+
+func teardown(ts *httptest.Server) {
+	ts.CloseClientConnections()
+	ts.Close()
+	test.CleanUserSessionTable()
+	test.CleanUsersTable()
+	test.CleanItemsTable()
+}
+
 func TestRenderNewItemForm(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
+	defer teardown(ts)
+	ids, err := test.PopulateUsersTable()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
-	response, err := client.Get(ts.URL + "/items/new")
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/items/new", nil)
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()
@@ -52,16 +71,20 @@ func TestRenderNewItemForm(t *testing.T) {
 func TestGetAllItems(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
-	defer test.CleanItemsTable()
-	_, _, err := test.PopulateItemsTable()
+	defer teardown(ts)
+	_, neighborIds, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, neighborIds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
-	response, err := client.Get(ts.URL + "/items/")
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/items/", nil)
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()
@@ -84,17 +107,21 @@ func TestGetAllItems(t *testing.T) {
 func TestCreateItem(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
-	defer test.CleanItemsTable()
+	defer teardown(ts)
 	ids, err := test.PopulateUsersTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, ids[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
 	jsonBytes, _ := json.Marshal(buildTestItem(ids[0]))
-	response, err := client.Post(ts.URL+"/items/", "application/json", bytes.NewBuffer(jsonBytes))
+	req, _ := http.NewRequest(http.MethodPost, ts.URL+"/items/", bytes.NewBuffer(jsonBytes))
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()
@@ -117,16 +144,19 @@ func TestCreateItem(t *testing.T) {
 func TestDeleteItem(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
-	defer test.CleanItemsTable()
-	ids, _, err := test.PopulateItemsTable()
+	defer teardown(ts)
+	ids, neighborIds, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, neighborIds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
 	req, _ := http.NewRequest("DELETE", ts.URL+"/items/"+strconv.FormatInt(ids[0], 10), nil)
+	req.AddCookie(&cookie)
 	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -140,16 +170,20 @@ func TestDeleteItem(t *testing.T) {
 func TestUpdateItem(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
-	defer test.CleanItemsTable()
+	defer teardown(ts)
 	itemIds, neighborIds, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, neighborIds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
+
 	jsonBytes, err := json.Marshal(map[string]interface{}{"DropoffLocation": "Shelter", "Fulfiller": neighborIds[0], "ID": strconv.FormatInt(itemIds[0], 10)})
 	req, _ := http.NewRequest("PUT", ts.URL+"/items/"+strconv.FormatInt(itemIds[0], 10), bytes.NewBuffer(jsonBytes))
+	req.AddCookie(&cookie)
 	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
@@ -172,16 +206,20 @@ func TestUpdateItem(t *testing.T) {
 func TestGetSingleItem(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
-	defer ts.CloseClientConnections()
-	defer ts.Close()
-	defer test.CleanUsersTable()
-	defer test.CleanItemsTable()
-	itemIds, _, err := test.PopulateItemsTable()
+	defer teardown(ts)
+	itemIds, neighborIds, err := test.PopulateItemsTable()
 	if err != nil {
 		t.Fatal(err)
 	}
+	cookieID, err := test.BuildUserSession(service, neighborIds[0])
+	if err != nil {
+		t.Fatal(err)
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, Secure: true, MaxAge: 24 * 60 * 60}
 
-	response, err := client.Get(ts.URL + "/items/" + strconv.FormatInt(itemIds[1], 10))
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/items/"+strconv.FormatInt(itemIds[1], 10), nil)
+	req.AddCookie(&cookie)
+	response, err := client.Do(req)
 	if err != nil {
 		log.Println(err)
 		t.FailNow()

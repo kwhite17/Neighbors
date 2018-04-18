@@ -3,6 +3,7 @@ package items
 import (
 	"database/sql"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -22,24 +23,24 @@ func (ish ItemServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// authenticated, err := utils.IsAuthenticated(ish, w, r)
-	// if !authenticated {
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		err = nil
-	// 	}
-	// 	response, err := http.Get("/login/")
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 	}
-	// 	page, err := ioutil.ReadAll(response.Body)
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	w.Write(page)
-	// 	return
-	// }
+	authenticated, err := utils.IsAuthenticated(ish, w, r)
+	if !authenticated {
+		if err != nil {
+			log.Println(err)
+			err = nil
+		}
+		response, err := http.Get("/login/")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		page, err := ioutil.ReadAll(response.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		w.Write(page)
+		return
+	}
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
@@ -63,13 +64,13 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "POST":
+	case http.MethodPost:
 		ish.handleCreateItem(w, r)
-	case "GET":
+	case http.MethodGet:
 		ish.handleGetItem(w, r)
-	case "DELETE":
+	case http.MethodDelete:
 		ish.handleDeleteItem(w, r)
-	case "PUT":
+	case http.MethodPut:
 		ish.handleUpdateItem(w, r)
 	default:
 		w.Write([]byte("Invalid Request\n"))

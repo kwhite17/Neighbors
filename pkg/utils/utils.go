@@ -9,8 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"strings"
 	"time"
+
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
@@ -96,8 +97,16 @@ func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQ
 	values := make([]interface{}, 0)
 	columns := make([]string, 0)
 	for k, v := range data {
-		values = append(values, v)
 		columns = append(columns, k)
+		if k == "Password" {
+			hash, err := bcrypt.GenerateFromPassword([]byte(v.(string)), bcrypt.DefaultCost)
+			if err != nil {
+				return nil, fmt.Errorf("ERROR - CreateElement - User Create: %v\n", err)
+			}
+			values = append(values, string(hash))
+		} else {
+			values = append(values, v)
+		}
 	}
 	createElementQuery := buildCreateQuery(columns)
 	result, err := sh.GetDatasource().ExecuteWriteQuery(r.Context(), createElementQuery, values)
@@ -118,21 +127,20 @@ func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQ
 func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) (bool, error) {
 	cookie, err := r.Cookie("NeighborsAuth")
 	if err != nil {
-		return false, nil
+		return false, fmt.Errorf("ERROR - IsAuthenticated - CookieRetrieval: %v", err)
 	}
-	cookieQuery := "SELECT CreatedAt FROM UserSession WHERE CookieID = ? AND Username = ?"
-	usernameIDPair := strings.Split(cookie.Value, "-")
-	rows, err := sh.GetDatasource().ExecuteReadQuery(nil, cookieQuery, []interface{}{usernameIDPair[0], usernameIDPair[1]})
+	cookieQuery := "SELECT LoginTime FROM userSession WHERE SessionKey = ?"
+	rows, err := sh.GetDatasource().ExecuteReadQuery(r.Context(), cookieQuery, []interface{}{cookie.Value})
 	if err != nil {
 		return false, fmt.Errorf("ERROR - Authentication - Database Read: %v", err)
 	}
 	for rows.Next() {
-		var createTime int64
-		err := rows.Scan(&createTime)
+		var loginTime int64
+		err := rows.Scan(&loginTime)
 		if err != nil {
 			return false, fmt.Errorf("ERROR - Authentication - Result Parse: %v", err)
 		}
-		if time.Now().Unix()-createTime >= int64(cookie.MaxAge) {
+		if time.Now().Unix()-loginTime >= int64(cookie.MaxAge) {
 			return false, nil
 		}
 		return true, nil

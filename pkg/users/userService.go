@@ -3,6 +3,7 @@ package users
 import (
 	"database/sql"
 	"encoding/json"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -22,33 +23,26 @@ func (ush UserServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ush UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// authenticated, err := utils.IsAuthenticated(ush, w, r)
-	// if !authenticated {
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		err = nil
-	// 	}
-	// 	response, err := http.Get("/login/")
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 	}
-	// 	page, err := ioutil.ReadAll(response.Body)
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	w.Write(page)
-	// 	return
-	// }
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
-	switch pathArray[len(pathArray)-1] {
-	case "new":
-		err := utils.RenderTemplate(w, nil, serviceEndpoint+"new.html")
+	authenticated, err := utils.IsAuthenticated(ush, w, r)
+	if !authenticated && r.Method != http.MethodPost {
 		if err != nil {
 			log.Println(err)
+			err = nil
+		}
+		response, err := http.Get("/login/")
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		page, err := ioutil.ReadAll(response.Body)
+		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		w.Write(page)
+		return
+	}
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	switch pathArray[len(pathArray)-1] {
 	case "edit":
 		err := utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
 		if err != nil {
@@ -63,13 +57,13 @@ func (ush UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 
 func (ush UserServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "POST":
+	case http.MethodPost:
 		ush.handleCreateUser(w, r)
-	case "GET":
+	case http.MethodGet:
 		ush.handleGetUser(w, r)
-	case "DELETE":
+	case http.MethodDelete:
 		ush.handleDeleteUser(w, r)
-	case "PUT":
+	case http.MethodPut:
 		ush.handleUpdateUser(w, r)
 	default:
 		w.Write([]byte("Invalid Request\n"))
