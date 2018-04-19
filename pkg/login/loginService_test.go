@@ -21,6 +21,32 @@ func createServer() *httptest.Server {
 	return httptest.NewServer(testMux)
 }
 
+// func TestRenderNewUserForm(t *testing.T) {
+// 	ts := createServer()
+// 	client := ts.Client()
+// 	defer ts.CloseClientConnections()
+// 	defer ts.Close()
+
+// 	response, err := client.Get(ts.URL + "/users/new")
+// 	if err != nil {
+// 		log.Println(err)
+// 		t.FailNow()
+// 	}
+// 	if response.StatusCode != http.StatusOK {
+// 		t.Errorf("NewUser Failure - Expected: %d, Actual: %d\n", http.StatusOK, response.StatusCode)
+// 		t.FailNow()
+// 	}
+// 	htmlBytes, err := ioutil.ReadAll(response.Body)
+// 	if err != nil {
+// 		log.Println(err)
+// 		t.FailNow()
+// 	}
+// 	htmlString := string(htmlBytes)
+// 	if !strings.Contains(htmlString, "/users/") || !strings.Contains(htmlString, "POST") {
+// 		t.Errorf("RenderNewUserForm Failure - Expected html to contain '/users/' and 'POST', Actual: %s\n", htmlString)
+// 	}
+// }
+
 func TestAcceptUserLogin(t *testing.T) {
 	ts := createServer()
 	client := ts.Client()
