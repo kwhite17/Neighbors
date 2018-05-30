@@ -67,19 +67,20 @@ func (lsh LoginServiceHandler) getPasswordForComparison(ctx context.Context, use
 }
 
 func (lsh LoginServiceHandler) generateUserSession(ctx context.Context, username string, cookieID string) error {
-	result, err := lsh.Database.ExecuteReadQuery(ctx, "SELECT ID FROM users WHERE Username=?", []interface{}{username})
+	result, err := lsh.Database.ExecuteReadQuery(ctx, "SELECT ID, Role FROM users WHERE Username=?", []interface{}{username})
 	if err != nil {
 		return fmt.Errorf("ERROR - LoginService - Database Write: %v\n", err)
 	}
 	for result.Next() {
 		var ID int64
-		if err := result.Scan(&ID); err != nil {
+		var role string
+		if err := result.Scan(&ID, &role); err != nil {
 			return fmt.Errorf("ERROR - LoginService - Result Parse: %v\n", err)
 		}
 		currentTime := time.Now().Unix()
 		sessionResult, err := lsh.Database.ExecuteWriteQuery(ctx,
-			"INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?)",
-			[]interface{}{cookieID, ID, currentTime, currentTime})
+			"INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime, Role) VALUES (?, ?, ?, ?, ?)",
+			[]interface{}{cookieID, ID, currentTime, currentTime, role})
 		if err != nil {
 			return fmt.Errorf("ERROR - LoginService - SessionCreation: %v\n", err)
 		}

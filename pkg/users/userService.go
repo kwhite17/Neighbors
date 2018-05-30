@@ -23,8 +23,8 @@ func (ush UserServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ush UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authenticated, err := utils.IsAuthenticated(ush, w, r)
-	if !authenticated && r.Method != http.MethodPost {
+	authRole, err := utils.IsAuthenticated(ush, w, r)
+	if authRole == nil && r.Method != http.MethodPost {
 		if err != nil {
 			log.Println(err)
 			err = nil
@@ -202,4 +202,22 @@ func (ush UserServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 		response = append(response, responseItem)
 	}
 	return response, nil
+}
+
+func (ush UserServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {
+	if role == nil {
+		return false
+	}
+	switch r.Method {
+	case http.MethodPost:
+		fallthrough
+	case http.MethodGet:
+		return true
+	case http.MethodPut:
+		fallthrough
+	case http.MethodDelete:
+		return role.ID == data["ID"]
+	default:
+		return false
+	}
 }

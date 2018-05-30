@@ -23,8 +23,8 @@ func (ish ItemServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authenticated, err := utils.IsAuthenticated(ish, w, r)
-	if !authenticated {
+	authRole, err := utils.IsAuthenticated(ish, w, r)
+	if authRole == nil {
 		if err != nil {
 			log.Println(err)
 			err = nil
@@ -214,4 +214,44 @@ func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 		response = append(response, responseItem)
 	}
 	return response, nil
+}
+
+func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {
+	if role == nil {
+		return false
+	}
+	switch r.Method {
+	case http.MethodGet:
+		return true
+	case http.MethodPost:
+		return role.Role == "NEIGHBOR"
+	case http.MethodDelete:
+		if data == nil {
+			return false
+		}
+		return data["Requestor"] == role.ID && role.Role == "SAMARITAN"
+	case http.MethodPut:
+		if data == nil {
+			return false
+		}
+		orderStatus, ok := data["OrderStatus"]
+		if !ok {
+			return false
+		}
+		switch orderStatus {
+		case "REQUESTED":
+			return role.Role == "SAMARITAN"
+		case "ASSIGNED":
+			fallthrough
+		case "PURCHASED":
+			return role.Role == "SAMARITAN" && data["Fulfiller"] == role.ID
+		case "DELIVERED":
+			return data["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+	return false
 }
