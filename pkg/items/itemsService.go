@@ -51,7 +51,18 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	case "edit":
-		err := utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, pathArray[len(pathArray)-2])
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !ish.isAuthorized(authRole, r, response[0]) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		err = utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -244,7 +255,19 @@ func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 	}
 	switch r.Method {
 	case http.MethodGet:
-		return true
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		switch pathArray[len(pathArray)-1] {
+		case "edit":
+			itemID := pathArray[len(pathArray)-2]
+			itemData, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+			return itemData[0]["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+		default:
+			return true
+		}
 	case http.MethodPost:
 		return role.Role == "NEIGHBOR"
 	case http.MethodDelete:

@@ -231,9 +231,21 @@ func (ush UserServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 		return false
 	}
 	switch r.Method {
-	case http.MethodPost:
-		fallthrough
 	case http.MethodGet:
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		switch pathArray[len(pathArray)-1] {
+		case "edit":
+			userID := pathArray[len(pathArray)-2]
+			userData, err := utils.HandleGetSingleElementRequest(r, ush, getSingleNeighborQuery, userID)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+			return userData[0]["ID"] == role.ID
+		default:
+			return true
+		}
+	case http.MethodPost:
 		return true
 	case http.MethodPut:
 		fallthrough
