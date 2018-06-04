@@ -58,26 +58,30 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	default:
-		ish.requestMethodHandler(w, r)
+		ish.requestMethodHandler(w, r, authRole)
 	}
 }
 
-func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	switch r.Method {
 	case http.MethodPost:
-		ish.handleCreateItem(w, r)
+		ish.handleCreateItem(w, r, authRole)
 	case http.MethodGet:
-		ish.handleGetItem(w, r)
+		ish.handleGetItem(w, r, authRole)
 	case http.MethodDelete:
-		ish.handleDeleteItem(w, r)
+		ish.handleDeleteItem(w, r, authRole)
 	case http.MethodPut:
-		ish.handleUpdateItem(w, r)
+		ish.handleUpdateItem(w, r, authRole)
 	default:
 		w.Write([]byte("Invalid Request\n"))
 	}
 }
 
-func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+	if !ish.isAuthorized(authRole, r, nil) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	redirectReq, err := utils.HandleCreateElementRequest(r, ish, ish.buildCreateItemQuery)
 	if err != nil {
 		log.Println(err)
@@ -98,7 +102,11 @@ func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {
 
 }
 
-func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+	if !ish.isAuthorized(authRole, r, nil) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	if itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(itemID) > 0 {
 		ish.handleGetSingleItem(w, r, itemID)
 	} else {
@@ -140,12 +148,16 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	itemData := make(map[string]interface{})
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&itemData)
 	if err != nil {
 		log.Printf("ERROR - UpdateItem - Item Data Decode: %v\n", err)
+		return
+	}
+	if !ish.isAuthorized(authRole, r, itemData) {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	values := make([]interface{}, 0)
@@ -180,15 +192,25 @@ func (ish ItemServiceHandler) buildUpdateItemQuery(columns []string, itemID stri
 
 var deleteNeighorQuery = "DELETE FROM items WHERE ID=?"
 
-func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
-	_, err := ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
+	response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !ish.isAuthorized(authRole, r, response[0]) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	_, err = ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
 	if err != nil {
 		log.Printf("ERROR - DeleteItem - Database Delete: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// handleGetAllItems(w, r)
+	ish.handleGetAllItems(w, r)
 }
 
 func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
@@ -253,5 +275,4 @@ func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 	default:
 		return false
 	}
-	return false
 }
