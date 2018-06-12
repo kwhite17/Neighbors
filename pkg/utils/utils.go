@@ -16,6 +16,11 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
+type AuthRole struct {
+	ID   int64
+	Role string
+}
+
 type ServiceHandler interface {
 	BuildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error)
 	GetDatasource() database.Datasource
@@ -124,26 +129,28 @@ func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQ
 	return req, nil
 }
 
-func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) (bool, error) {
+func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) (*AuthRole, error) {
 	cookie, err := r.Cookie("NeighborsAuth")
 	if err != nil {
-		return false, fmt.Errorf("ERROR - IsAuthenticated - CookieRetrieval: %v", err)
+		return nil, fmt.Errorf("ERROR - IsAuthenticated - CookieRetrieval: %v", err)
 	}
-	cookieQuery := "SELECT LoginTime FROM userSession WHERE SessionKey = ?"
+	cookieQuery := "SELECT LoginTime, Role, ID, FROM userSession WHERE SessionKey = ?"
 	rows, err := sh.GetDatasource().ExecuteReadQuery(r.Context(), cookieQuery, []interface{}{cookie.Value})
 	if err != nil {
-		return false, fmt.Errorf("ERROR - Authentication - Database Read: %v", err)
+		return nil, fmt.Errorf("ERROR - Authentication - Database Read: %v", err)
 	}
 	for rows.Next() {
 		var loginTime int64
-		err := rows.Scan(&loginTime)
+		var role string
+		var ID int64
+		err := rows.Scan(&loginTime, &role, &ID)
 		if err != nil {
-			return false, fmt.Errorf("ERROR - Authentication - Result Parse: %v", err)
+			return nil, fmt.Errorf("ERROR - Authentication - Result Parse: %v", err)
 		}
 		if time.Now().Unix()-loginTime >= int64(cookie.MaxAge) {
-			return false, nil
+			return nil, nil
 		}
-		return true, nil
+		return &AuthRole{ID: ID, Role: role}, nil
 	}
-	return false, nil
+	return nil, nil
 }

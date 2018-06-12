@@ -23,8 +23,8 @@ func (ish ItemServiceHandler) GetDatasource() database.Datasource {
 }
 
 func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authenticated, err := utils.IsAuthenticated(ish, w, r)
-	if !authenticated {
+	authRole, err := utils.IsAuthenticated(ish, w, r)
+	if authRole == nil {
 		if err != nil {
 			log.Println(err)
 			err = nil
@@ -51,33 +51,48 @@ func (ish ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 			return
 		}
 	case "edit":
-		err := utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, pathArray[len(pathArray)-2])
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if !ish.isAuthorized(authRole, r, response[0]) {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		err = utils.RenderTemplate(w, nil, serviceEndpoint+"edit.html")
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 	default:
-		ish.requestMethodHandler(w, r)
+		ish.requestMethodHandler(w, r, authRole)
 	}
 }
 
-func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	switch r.Method {
 	case http.MethodPost:
-		ish.handleCreateItem(w, r)
+		ish.handleCreateItem(w, r, authRole)
 	case http.MethodGet:
-		ish.handleGetItem(w, r)
+		ish.handleGetItem(w, r, authRole)
 	case http.MethodDelete:
-		ish.handleDeleteItem(w, r)
+		ish.handleDeleteItem(w, r, authRole)
 	case http.MethodPut:
-		ish.handleUpdateItem(w, r)
+		ish.handleUpdateItem(w, r, authRole)
 	default:
 		w.Write([]byte("Invalid Request\n"))
 	}
 }
 
-func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+	if !ish.isAuthorized(authRole, r, nil) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	redirectReq, err := utils.HandleCreateElementRequest(r, ish, ish.buildCreateItemQuery)
 	if err != nil {
 		log.Println(err)
@@ -98,7 +113,11 @@ func (ish ItemServiceHandler) buildCreateItemQuery(columns []string) string {
 
 }
 
-func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+	if !ish.isAuthorized(authRole, r, nil) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 	if itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(itemID) > 0 {
 		ish.handleGetSingleItem(w, r, itemID)
 	} else {
@@ -140,12 +159,16 @@ func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.R
 	}
 }
 
-func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	itemData := make(map[string]interface{})
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&itemData)
 	if err != nil {
 		log.Printf("ERROR - UpdateItem - Item Data Decode: %v\n", err)
+		return
+	}
+	if !ish.isAuthorized(authRole, r, itemData) {
+		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	values := make([]interface{}, 0)
@@ -180,15 +203,25 @@ func (ish ItemServiceHandler) buildUpdateItemQuery(columns []string, itemID stri
 
 var deleteNeighorQuery = "DELETE FROM items WHERE ID=?"
 
-func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
+func (ish ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	itemID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
-	_, err := ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
+	response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if !ish.isAuthorized(authRole, r, response[0]) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+	_, err = ish.Database.ExecuteWriteQuery(r.Context(), deleteNeighorQuery, []interface{}{itemID})
 	if err != nil {
 		log.Printf("ERROR - DeleteItem - Database Delete: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	// handleGetAllItems(w, r)
+	ish.handleGetAllItems(w, r)
 }
 
 func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[string]interface{}, error) {
@@ -214,4 +247,55 @@ func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 		response = append(response, responseItem)
 	}
 	return response, nil
+}
+
+func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {
+	if role == nil {
+		return false
+	}
+	switch r.Method {
+	case http.MethodGet:
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		switch pathArray[len(pathArray)-1] {
+		case "edit":
+			itemID := pathArray[len(pathArray)-2]
+			itemData, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+			return itemData[0]["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+		default:
+			return true
+		}
+	case http.MethodPost:
+		return role.Role == "NEIGHBOR"
+	case http.MethodDelete:
+		if data == nil {
+			return false
+		}
+		return data["Requestor"] == role.ID && role.Role == "SAMARITAN"
+	case http.MethodPut:
+		if data == nil {
+			return false
+		}
+		orderStatus, ok := data["OrderStatus"]
+		if !ok {
+			return false
+		}
+		switch orderStatus {
+		case "REQUESTED":
+			return role.Role == "SAMARITAN"
+		case "ASSIGNED":
+			fallthrough
+		case "PURCHASED":
+			return role.Role == "SAMARITAN" && data["Fulfiller"] == role.ID
+		case "DELIVERED":
+			return data["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+		default:
+			return false
+		}
+	default:
+		return false
+	}
 }

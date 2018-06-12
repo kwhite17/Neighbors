@@ -79,10 +79,10 @@ func CleanUserSessionTable() {
 }
 
 func BuildUserSession(sh utils.ServiceHandler, userID int64) (string, error) {
-	userSessionQuery := "INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?)"
+	userSessionQuery := "INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime, Role) VALUES (?, ?, ?, ?, ?)"
 	curTime := time.Now().UnixNano()
 	testKey := "testKey-" + strconv.FormatInt(curTime, 10)
-	_, err := sh.GetDatasource().ExecuteWriteQuery(context.Background(), userSessionQuery, []interface{}{testKey, userID, curTime, curTime})
+	_, err := sh.GetDatasource().ExecuteWriteQuery(context.Background(), userSessionQuery, []interface{}{testKey, userID, curTime, curTime, "SAMARITAN"})
 	if err != nil {
 		return "", fmt.Errorf("ERROR - BuildUserSession: %v", err)
 	}
