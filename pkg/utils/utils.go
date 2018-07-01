@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"time"
@@ -39,17 +38,17 @@ func BuildJsonResponse(result *sql.Rows, sh ServiceHandler) ([]byte, error) {
 }
 
 func RenderTemplate(w http.ResponseWriter, data interface{}, templatePath string) error {
-	cwd, err := os.Getwd()
+	htmlBytes, err := Asset(filepath.Join("templates", templatePath))
 	if err != nil {
-		return fmt.Errorf("ERROR - Parse Template - Working Directory: %v\n", err)
+		return fmt.Errorf("ERROR - Parse Template - Retrieve Data: %v\n", err)
 	}
-	t, err := template.ParseFiles(filepath.Join(cwd, "templates", templatePath))
+	t, err := template.New(templatePath).Parse(string(htmlBytes))
 	if err != nil {
 		return fmt.Errorf("ERROR - Parse Template - Template Creation: %v\n", err)
 	}
 	err = t.Execute(w, data)
 	if err != nil {
-		return fmt.Errorf("ERROR - Render Template - Response Sending: %v\n", err)
+		return fmt.Errorf("ERROR - Parse Template - Response Sending: %v\n", err)
 	}
 	return nil
 }
@@ -134,7 +133,7 @@ func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return nil, fmt.Errorf("ERROR - IsAuthenticated - CookieRetrieval: %v", err)
 	}
-	cookieQuery := "SELECT LoginTime, Role, ID, FROM userSession WHERE SessionKey = ?"
+	cookieQuery := "SELECT LoginTime, Role, UserID FROM userSession WHERE SessionKey=?"
 	rows, err := sh.GetDatasource().ExecuteReadQuery(r.Context(), cookieQuery, []interface{}{cookie.Value})
 	if err != nil {
 		return nil, fmt.Errorf("ERROR - Authentication - Database Read: %v", err)

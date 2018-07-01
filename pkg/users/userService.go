@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
@@ -183,18 +184,12 @@ var deleteUserQuery = "DELETE FROM users WHERE ID=?"
 
 func (ush UserServiceHandler) handleDeleteUser(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
 	username := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
-	response, err := utils.HandleGetSingleElementRequest(r, ush, getSingleNeighborQuery, username)
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
-		return
-	}
-	if !ush.isAuthorized(authRole, r, response[0]) {
+	if !ush.isAuthorized(authRole, r, map[string]interface{}{"ID": username}) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 	w.Write([]byte("Deleting user data for " + username + "\n"))
-	_, err = ush.Database.ExecuteWriteQuery(r.Context(), deleteUserQuery, []interface{}{username})
+	_, err := ush.Database.ExecuteWriteQuery(r.Context(), deleteUserQuery, []interface{}{username})
 	if err != nil {
 		log.Printf("ERROR - DeleteUser - Database Delete: %v\n", err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -241,7 +236,11 @@ func (ush UserServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 				log.Println(err)
 				return false
 			}
-			return userData[0]["ID"] == role.ID
+			updateID, err := strconv.ParseInt(userData[0]["ID"].(string), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			return updateID == role.ID
 		default:
 			return true
 		}
@@ -250,7 +249,11 @@ func (ush UserServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:
-		return role.ID == data["ID"]
+		updateID, err := strconv.ParseInt(data["ID"].(string), 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		return role.ID == updateID
 	default:
 		return false
 	}

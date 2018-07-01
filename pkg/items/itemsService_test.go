@@ -175,7 +175,7 @@ func TestUpdateItem(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	cookieID, err := test.BuildUserSession(service, neighborIds[0])
+	cookieID, err := test.BuildUserSessionWithRole(service, neighborIds[0], "SAMARITAN")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -246,5 +246,6 @@ func buildTestItem(requestorId int64) map[string]interface{} {
 	item["Quantity"] = 1
 	item["Requestor"] = requestorId
 	item["DropoffLocation"] = "Shelter"
+	item["OrderStatus"] = "REQUESTED"
 	return item
 }

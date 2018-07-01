@@ -1,14 +1,11 @@
-install: test after-test
+install: test
 	GOBIN=${GOPATH}/bin go install ./cmd/neighbors.go
 
-test: compile before-test
-	go test ./pkg/*
+test: compile
+	go test ./pkg/items && go test ./pkg/users && go test ./pkg/login
 
-compile:
-	dep ensure && go build ./pkg/*
+compile: pre-compile
+	go build ./pkg/*
 
-after-test:
-	rm -r ./pkg/**/templates
-
-before-test:
-	mkdir ./pkg/users/templates ./pkg/items/templates && cp -r ./templates/items ./pkg/items/templates/ && cp -r ./templates/users ./pkg/users/templates/
+pre-compile:
+	dep ensure && go-bindata -pkg utils templates/... && mv bindata.go ./pkg/utils/

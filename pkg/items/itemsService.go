@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
@@ -125,7 +126,7 @@ func (ish ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-var getSingleItemQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items where ID=?"
+var getSingleItemQuery = "SELECT ID, Requestor, Fulfiller, Category, Gender, Size, Quantity, DropoffLocation, OrderStatus from items where ID=?"
 
 func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string) {
 	response, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
@@ -142,7 +143,7 @@ func (ish ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http
 	}
 }
 
-var getAllItemsQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items"
+var getAllItemsQuery = "SELECT ID, Requestor, Fulfiller, Category, Gender, Size, Quantity, DropoffLocation, OrderStatus from items"
 
 func (ish ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request) {
 	response, err := utils.HandleGetAllElementsRequest(r, ish, getAllItemsQuery)
@@ -167,7 +168,12 @@ func (ish ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Re
 		log.Printf("ERROR - UpdateItem - Item Data Decode: %v\n", err)
 		return
 	}
-	if !ish.isAuthorized(authRole, r, itemData) {
+	originalItem, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemData["ID"].(string))
+	if err != nil {
+		log.Printf("ERROR - UpdateItem - Item Data Decode: %v\n", err)
+		return
+	}
+	if !ish.isAuthorized(authRole, r, originalItem[0]) {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -233,9 +239,12 @@ func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 		var size string
 		var quantity int
 		var dropoffLocation string
+		var requestor int64
+		var fulfiller interface{}
+		var orderStatus string
 		responseItem := make(map[string]interface{})
-		if err := result.Scan(&id, &category, &gender, &size, &quantity,
-			&dropoffLocation); err != nil {
+		if err := result.Scan(&id, &requestor, &fulfiller, &category, &gender, &size, &quantity,
+			&dropoffLocation, &orderStatus); err != nil {
 			return nil, err
 		}
 		responseItem["ID"] = id
@@ -244,6 +253,9 @@ func (ish ItemServiceHandler) BuildGenericResponse(result *sql.Rows) ([]map[stri
 		responseItem["Size"] = size
 		responseItem["Quantity"] = quantity
 		responseItem["DropoffLocation"] = dropoffLocation
+		responseItem["Requestor"] = requestor
+		responseItem["Fulfiller"] = fulfiller
+		responseItem["OrderStatus"] = orderStatus
 		response = append(response, responseItem)
 	}
 	return response, nil
@@ -264,7 +276,11 @@ func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 				log.Println(err)
 				return false
 			}
-			return itemData[0]["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+			updateID, err := strconv.ParseInt(itemData[0]["Requestor"].(string), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			return updateID == role.ID && role.Role == "NEIGHBOR"
 		default:
 			return true
 		}
@@ -274,7 +290,7 @@ func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 		if data == nil {
 			return false
 		}
-		return data["Requestor"] == role.ID && role.Role == "SAMARITAN"
+		return data["Requestor"] == role.ID && role.Role == "NEIGHBOR"
 	case http.MethodPut:
 		if data == nil {
 			return false
@@ -289,9 +305,17 @@ func (ish ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request
 		case "ASSIGNED":
 			fallthrough
 		case "PURCHASED":
-			return role.Role == "SAMARITAN" && data["Fulfiller"] == role.ID
+			updateID, err := strconv.ParseInt(data["Fulfiller"].(string), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			return role.Role == "SAMARITAN" && updateID == role.ID
 		case "DELIVERED":
-			return data["Requestor"] == role.ID && role.Role == "NEIGHBOR"
+			updateID, err := strconv.ParseInt(data["Requestor"].(string), 10, 64)
+			if err != nil {
+				panic(err)
+			}
+			return updateID == role.ID && role.Role == "NEIGHBOR"
 		default:
 			return false
 		}

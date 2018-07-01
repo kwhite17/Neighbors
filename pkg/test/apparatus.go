@@ -13,7 +13,7 @@ import (
 
 var TestConnection = database.NeighborsDatabase
 var createTestUsersQuery = "INSERT INTO users (Username, Password, Location, Role) VALUES (?, ?, ?, ?)"
-var createTestItemsQuery = "INSERT INTO items (Category, Size, Quantity, DropoffLocation, Requestor) VALUES (?, ?, ?, ?, ?)"
+var createTestItemsQuery = "INSERT INTO items (Category, Size, Quantity, DropoffLocation, Requestor, OrderStatus) VALUES (?, ?, ?, ?, ?, 'REQUESTED')"
 var deleteTestUsersQuery = "DELETE FROM users WHERE Username LIKE 'testUser%'"
 var deleteTestItemsQuery = "DELETE FROM items WHERE Category='TESTITEM'"
 var deleteTestSessionQuery = "DELETE FROM userSession WHERE SessionKey LIKE 'testKey-%'"
@@ -79,10 +79,14 @@ func CleanUserSessionTable() {
 }
 
 func BuildUserSession(sh utils.ServiceHandler, userID int64) (string, error) {
+	return BuildUserSessionWithRole(sh, userID, "NEIGHBOR")
+}
+
+func BuildUserSessionWithRole(sh utils.ServiceHandler, userID int64, userRole string) (string, error) {
 	userSessionQuery := "INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime, Role) VALUES (?, ?, ?, ?, ?)"
 	curTime := time.Now().UnixNano()
 	testKey := "testKey-" + strconv.FormatInt(curTime, 10)
-	_, err := sh.GetDatasource().ExecuteWriteQuery(context.Background(), userSessionQuery, []interface{}{testKey, userID, curTime, curTime, "SAMARITAN"})
+	_, err := sh.GetDatasource().ExecuteWriteQuery(context.Background(), userSessionQuery, []interface{}{testKey, userID, curTime, curTime, userRole})
 	if err != nil {
 		return "", fmt.Errorf("ERROR - BuildUserSession: %v", err)
 	}
