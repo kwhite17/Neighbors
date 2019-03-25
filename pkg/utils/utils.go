@@ -129,6 +129,14 @@ func HandleCreateElementRequest(r *http.Request, sh ServiceHandler, buildCreateQ
 	return req, nil
 }
 
+func BuildGetSingleEntityRequest(origReq *http.Request, id int64) (*http.Request, error) {
+	req, err := http.NewRequest("GET", origReq.URL.String()+strconv.FormatInt(id, 10), nil)
+	if err != nil {
+		return nil, fmt.Errorf("ERROR - CreateElement - Redirect Request: %v\n", err)
+	}
+	return req, nil
+}
+
 func IsAuthenticated(sh ServiceHandler, w http.ResponseWriter, r *http.Request) (*AuthRole, error) {
 	cookie, err := r.Cookie("NeighborsAuth")
 	if err != nil {

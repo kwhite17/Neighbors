@@ -7,6 +7,13 @@ import "context"
 
 var NeighborsDatabase = NeighborsDatasource{database: initDatabase()}
 
+type DbManager interface {
+	ReadAllEntities(ctx context.Context) (*sql.Rows, error)
+	ReadEntity(ctx context.Context, id int64) (*sql.Rows, error)
+	WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error)
+	DeleteEntity(ctx context.Context, id string) (sql.Result, error)
+}
+
 type Datasource interface {
 	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error)
 	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error)

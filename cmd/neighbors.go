@@ -23,7 +23,7 @@ func main() {
 	log.Println(directory)
 	mux := http.NewServeMux()
 	mux.Handle("/users/", users.UserServiceHandler{Database: database.NeighborsDatabase})
-	mux.Handle("/items/", items.ItemServiceHandler{Database: database.NeighborsDatabase})
+	mux.Handle("/items/", items.ItemResourceHandler{Database: database.NeighborsDatabase})
 	mux.Handle("/templates/", http.StripPrefix("/templates/", http.FileServer(http.Dir(directory+"/templates/"))))
 
 	http.ListenAndServe(":8080", mux)

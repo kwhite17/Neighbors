@@ -30,6 +30,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
 		err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(r.FormValue("password")))
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
