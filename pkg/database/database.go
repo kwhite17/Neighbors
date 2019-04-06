@@ -5,7 +5,7 @@ import _ "github.com/go-sql-driver/mysql"
 import "log"
 import "context"
 
-var NeighborsDatabase = NeighborsDatasource{database: initDatabase()}
+var NeighborsDatabase = NeighborsDatasource{Database: initDatabase()}
 
 type DbManager interface {
 	ReadAllEntities(ctx context.Context) (*sql.Rows, error)
@@ -20,7 +20,7 @@ type Datasource interface {
 }
 
 type NeighborsDatasource struct {
-	database *sql.DB
+	Database *sql.DB
 }
 
 func initDatabase() *sql.DB {
@@ -32,7 +32,7 @@ func initDatabase() *sql.DB {
 }
 
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
-	resultSet, err := nd.database.QueryContext(ctx, query, arguments...)
+	resultSet, err := nd.Database.QueryContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery - %v\n", err)
 		return nil, err
@@ -41,7 +41,7 @@ func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string
 }
 
 func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
-	result, err := nd.database.ExecContext(ctx, query, arguments...)
+	result, err := nd.Database.ExecContext(ctx, query, arguments...)
 	if err != nil {
 		log.Printf("ERROR - WriteQuery - %v\n", err)
 		return nil, err

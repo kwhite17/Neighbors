@@ -7,10 +7,10 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
-var createItemQuery = "INSERT INTO items (Category, Gender, Size, Quantity, ShelterID, Status) VALUES (?, ?, ?, ?, ?, ?)"
+var createItemQuery = "INSERT INTO items (Category, Gender, Quantity, ShelterID, Size, Status) VALUES (?, ?, ?, ?, ?, ?)"
 var deleteItemQuery = "DELETE FROM items WHERE id=?"
-var getSingleItemQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items where ID=?"
-var getAllItemsQuery = "SELECT ID, Category, Gender, Size, Quantity, DropoffLocation from items"
+var getSingleItemQuery = "SELECT * FROM items WHERE ID=?"
+var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items"
 
 type ItemManager struct {
 	ds database.Datasource
@@ -39,7 +39,7 @@ func (im *ItemManager) GetItem(ctx context.Context, id int64) (*Item, error) {
 	return item[0], nil
 }
 
-func (im *ItemManager) GetItems(ctx context.Context, id int64) ([]*Item, error) {
+func (im *ItemManager) GetItems(ctx context.Context) ([]*Item, error) {
 	result, err := im.ReadEntities(ctx)
 	if err != nil {
 		return nil, err
