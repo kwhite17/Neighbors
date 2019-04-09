@@ -7,10 +7,10 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
-var createShelterQuery = "INSERT INTO shelters (Name, Street, City, State, Country, PostalCode) VALUES (?, ?, ?, ?, ?, ?)"
+var createShelterQuery = "INSERT INTO shelters (City, Country, Name, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?)"
 var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
-var getSingleShelterQuery = "SELECT ID, Name, Street, City, State, Country, PostalCode from shelters where id=?"
-var getAllSheltersQuery = "SELECT ID, Name, Street, City, State, Country, PostalCode from shelters"
+var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters where id=?"
+var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters"
 
 type ShelterManager struct {
 	ds database.Datasource
@@ -39,7 +39,7 @@ func (sm *ShelterManager) GetShelter(ctx context.Context, id int64) (*Shelter, e
 	return shelter[0], nil
 }
 
-func (sm *ShelterManager) GetShelters(ctx context.Context, id int64) ([]*Shelter, error) {
+func (sm *ShelterManager) GetShelters(ctx context.Context) ([]*Shelter, error) {
 	result, err := sm.ReadEntities(ctx)
 	if err != nil {
 		return nil, err
