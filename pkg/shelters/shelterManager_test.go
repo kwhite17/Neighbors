@@ -28,7 +28,7 @@ func TestCanReadItsOwnWrite(t *testing.T) {
 	testShelter := generateShelter()
 
 	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ShelterManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteShelter(context.Background(), testShelter)
 	if err != nil {
 		t.Error(err)
@@ -61,7 +61,7 @@ func TestItCanDeleteShelter(t *testing.T) {
 	testShelter := generateShelter()
 
 	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ShelterManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteShelter(context.Background(), testShelter)
 	if err != nil {
 		t.Error(err)
@@ -89,7 +89,7 @@ func TestItCanGetAllShelters(t *testing.T) {
 	defer db.Close()
 	testShelters := make([]*Shelter, 0)
 	expectedRows := make([][]driver.Value, 0)
-	manager := &ShelterManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	for i := 0; i < 5; i++ {
 		testShelter := generateShelter()
 
