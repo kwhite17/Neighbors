@@ -1,4 +1,4 @@
-package users
+package shelters
 
 import (
 	"context"
@@ -11,20 +11,25 @@ var createShelterQuery = "INSERT INTO shelters (City, Country, Name, PostalCode,
 var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
 var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters where id=?"
 var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters"
+var updateShelterQuery = "UPDATE shelters SET City = ?, Country = ?, Name = ?, PostalCode = ?, State = ?, Street = ? WHERE ID = ?"
 
 type ShelterManager struct {
-	ds database.Datasource
+	Datasource database.Datasource
 	database.DbManager
 }
 
-type Shelter struct {
-	ID         int64
+type ContactInformation struct {
 	City       string
 	Country    string
 	Name       string
 	PostalCode string
 	State      string
 	Street     string
+}
+
+type Shelter struct {
+	ID int64
+	*ContactInformation
 }
 
 func (sm *ShelterManager) GetShelter(ctx context.Context, id int64) (*Shelter, error) {
@@ -60,6 +65,12 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter) (i
 	return result.LastInsertId()
 }
 
+func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) error {
+	values := []interface{}{shelter.City, shelter.Country, shelter.Name, shelter.PostalCode, shelter.State, shelter.Street, shelter.ID}
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterQuery, values)
+	return err
+}
+
 func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, error) {
 	result, err := sm.DeleteEntity(ctx, id)
 	if err != nil {
@@ -69,15 +80,15 @@ func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, 
 }
 
 func (sm *ShelterManager) ReadEntity(ctx context.Context, id int64) (*sql.Rows, error) {
-	return sm.ds.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
+	return sm.Datasource.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 }
 
 func (sm *ShelterManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return sm.ds.ExecuteReadQuery(ctx, getAllSheltersQuery, nil)
+	return sm.Datasource.ExecuteReadQuery(ctx, getAllSheltersQuery, nil)
 }
 
 func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.ds.ExecuteWriteQuery(ctx, createShelterQuery, values)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +96,7 @@ func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{})
 }
 
 func (sm *ShelterManager) DeleteEntity(ctx context.Context, id string) (sql.Result, error) {
-	result, err := sm.ds.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +116,8 @@ func (sm *ShelterManager) buildShelters(result *sql.Rows) ([]*Shelter, error) {
 		if err := result.Scan(&id, &city, &country, &name, &postalCode, &state, &street); err != nil {
 			return nil, err
 		}
-		shelter := Shelter{ID: id, City: city, Country: country, Name: name, PostalCode: postalCode, State: state, Street: street}
+		contactInfo := &ContactInformation{City: city, Country: country, Name: name, PostalCode: postalCode, State: state, Street: street}
+		shelter := Shelter{ID: id, ContactInformation: contactInfo}
 		response = append(response, &shelter)
 	}
 	return response, nil

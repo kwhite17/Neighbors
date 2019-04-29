@@ -1,9 +1,14 @@
 package database
 
-import "database/sql"
-import _ "github.com/go-sql-driver/mysql"
-import "log"
-import "context"
+import (
+	"context"
+	"database/sql"
+	"io/ioutil"
+	"log"
+	"path/filepath"
+
+	_ "github.com/mattn/go-sqlite3"
+)
 
 var NeighborsDatabase = NeighborsDatasource{Database: initDatabase()}
 
@@ -24,11 +29,24 @@ type NeighborsDatasource struct {
 }
 
 func initDatabase() *sql.DB {
-	db, err := sql.Open("mysql", "neighbors_dba:neighbors_dba@/neighbors")
+	db, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
-		log.Printf("ERROR - dbInit - %v\n", err)
+		log.Fatalf("ERROR - dbInit: Connect - %v\n", err)
+	}
+	_, err = db.Exec(loadMigration())
+	if err != nil {
+		log.Fatalf("ERROR - dbInit: Table Creation - %v\n", err)
 	}
 	return db
+}
+
+func loadMigration() string {
+	migrationFile := filepath.Join("..", "pkg", "database", "neighbors_db.sql")
+	fileBytes, err := ioutil.ReadFile(migrationFile)
+	if err != nil {
+		log.Fatalf("ERROR - migration - %v\n", err)
+	}
+	return string(fileBytes)
 }
 
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {

@@ -1,4 +1,4 @@
-package users
+package shelters
 
 import (
 	"context"
@@ -132,7 +132,7 @@ func shelterToRow(shelter *Shelter) []driver.Value {
 }
 
 func generateShelter() *Shelter {
-	return &Shelter{
+	contactInfo := &ContactInformation{
 		City:       testCity,
 		Country:    testCountry,
 		Name:       testName,
@@ -140,6 +140,8 @@ func generateShelter() *Shelter {
 		State:      testState,
 		Street:     testStreet,
 	}
+
+	return &Shelter{ContactInformation: contactInfo}
 }
 
 func contains(candidateShelter *Shelter, expectedShelters []*Shelter) bool {

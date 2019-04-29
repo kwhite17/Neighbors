@@ -1,31 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>All Users</title>
+    <title>Neighbors: All Shelters</title>
 </head>
+
 <body>
+    <h1>All Shelters</h1>
     <table>
         <thead>
             <th>
-                Username
+                Shelter Name
             </th>
             <th>
-                Location
+                Address
             </th>
         </thead>
         <tbody>
             {{range $index, $element := . }}
             <tr>
-                <td>{{ $element.Username }}</td>
-            </tr>
-            <tr>
-                <td>{{ $element.Location }}</td>
+                <td>{{ $element.Name }}</td>
+                <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.Country }},
+                    {{ $element.PostalCode }}</td>
+                <a href="./{{ $element.ID }}">View</a>
             </tr>
             {{end}}
         </tbody>
     </table>
 </body>
+
 </html>
