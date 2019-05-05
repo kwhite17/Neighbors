@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Neighbors: Shelter Registration</title>
+</head>
+
+<h1>Shelter Registration</h1>
+
+<body>
+    <form id="createForm">
+        Shelter Name
+        <br>
+        <input type="text" name="name">
+        <br><br>
+        Street
+        <br>
+        <input type="text" name="street">
+        <br><br>
+        City
+        <br>
+        <input type="text" name="city">
+        <br><br>
+        State
+        <br>
+        <input type="text" name="state">
+        <br><br>
+        Postal Code
+        <br>
+        <input type="text" name="postalCode">
+        <br><br>
+        Country
+        <br>
+        <input type="text" name="country">
+        <br><br>
+        <button type="button" onclick="createShelter()">Register Shelter</button>
+    </form>
+</body>
+<script>
+    var createShelter = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('createForm').elements;
+        var elementUpdate = {
+            Name: formElements.namedItem('name').value,
+            Street: formElements.namedItem('street').value,
+            City: formElements.namedItem('city').value,
+            State: formElements.namedItem('state').value,
+            PostalCode: formElements.namedItem('postalCode').value,
+            Country: formElements.namedItem('country').value,
+        };
+
+        req.open("POST", window.location.origin + '/shelters/');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 200) {
+                var response = JSON.parse(req.response);
+                window.location = window.location.origin + '/shelters/' + response.ID;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 200) {
+                alert("Failed to update shelter!");
+                return false;
+            }
+        };
+        req.send(JSON.stringify(elementUpdate));
+        return false;
+    }
+</script>
+
+</html>

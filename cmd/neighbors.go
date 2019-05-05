@@ -1,30 +1,33 @@
 package main
 
 import (
+	"flag"
 	"log"
 	"net/http"
-	"os"
-	"path/filepath"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
-	"github.com/kwhite17/Neighbors/pkg/items"
-	"github.com/kwhite17/Neighbors/pkg/users"
+	"github.com/kwhite17/Neighbors/pkg/shelters"
 )
 
-func main() {
-	directory, err := os.Getwd()
-	if err != nil {
-		log.Fatalln(err)
-	}
-	directory, err = filepath.EvalSymlinks(directory)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	log.Println(directory)
-	mux := http.NewServeMux()
-	mux.Handle("/users/", users.UserServiceHandler{Database: database.NeighborsDatabase})
-	mux.Handle("/items/", items.ItemServiceHandler{Database: database.NeighborsDatabase})
-	mux.Handle("/templates/", http.StripPrefix("/templates/", http.FileServer(http.Dir(directory+"/templates/"))))
+var NeighborsDatabase database.NeighborsDatasource
 
+func main() {
+	dbHost := flag.String("dbhost", ":memory:", "Name of host on which to run Neighbors")
+	developmentMode := flag.Bool("developmentMode", false, "run app in development mode")
+	flag.Parse()
+	log.Println("Connecting to host", *dbHost)
+	log.Println("Development mode set to:", *developmentMode)
+
+	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(*dbHost, *developmentMode)}
+	mux := http.NewServeMux()
+
+	mux.Handle("/shelters/", buildShelterServiceHandler())
 	http.ListenAndServe(":8080", mux)
+}
+
+func buildShelterServiceHandler() shelters.ShelterServiceHandler {
+	return shelters.ShelterServiceHandler{
+		ShelterRetriever: &shelters.ShelterRetriever{},
+		ShelterManager:   &shelters.ShelterManager{Datasource: NeighborsDatabase},
+	}
 }

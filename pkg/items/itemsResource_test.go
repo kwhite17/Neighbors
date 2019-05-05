@@ -15,7 +15,7 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/test"
 )
 
-var service = ItemServiceHandler{Database: test.TestConnection}
+var service = ItemResourceHandler{Database: test.TestConnection}
 
 func createServer() *httptest.Server {
 	directory, _ := os.Getwd()

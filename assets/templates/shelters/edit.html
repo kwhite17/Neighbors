@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Neighbors: Shelter Registration</title>
+</head>
+
+<h1>Update Shelter</h1>
+
+<body>
+    <form id="editForm">
+        <input type="hidden" name="id" value={{.ID}}>
+        Shelter Name
+        <br>
+        <input type="text" name="name" value={{.Name}}>
+        <br><br>
+        Street
+        <br>
+        <input type="text" name="street" value={{.Street}}>
+        <br><br>
+        City
+        <br>
+        <input type="text" name="city" value={{.City}}>
+        <br><br>
+        State
+        <br>
+        <input type="text" name="state" value={{.State}}>
+        <br><br>
+        Postal Code
+        <br>
+        <input type="text" name="postalCode" value={{.PostalCode}}>
+        <br><br>
+        Country
+        <br>
+        <input type="text" name="country" value={{.Country}}>
+        <br><br>
+        <button type="button" onclick="updateShelter()">Update Shelter</button>
+    </form>
+</body>
+<script>
+    var updateShelter = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('editForm').elements;
+        var parts = window.location.pathname.split("/");
+        parts.pop();
+        var putPath = window.location.origin + parts.join("/");
+        var elementUpdate = {
+            Name: formElements.namedItem('name').value,
+            Street: formElements.namedItem('street').value,
+            City: formElements.namedItem('city').value,
+            State: formElements.namedItem('state').value,
+            PostalCode: formElements.namedItem('postalCode').value,
+            Country: formElements.namedItem('country').value,
+            ID: Number(formElements.namedItem('id').value),
+        }
+
+        req.open("PUT", putPath);
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = putPath;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to update shelter!");
+                return false;
+            }
+        }
+        req.send(JSON.stringify(elementUpdate));
+        return false;
+    }
+</script>
+
+</html>

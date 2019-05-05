@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Neighbors: Shelter Info</title>
+</head>
+
+<body>
+    <h2>Shelter Info</h2>
+    <strong>ID:</strong>
+    {{.ID}}
+    <br>
+    <strong>Shelter Name:</strong>
+    {{.Name}}
+    <br>
+    <strong>Address:</strong>
+    {{.Street}}, {{.City}}, {{.State}}, {{.Country}}, {{.PostalCode}}
+    <br>
+    <button onclick="editShelter()">Edit</button>
+    <button onclick="deleteShelter()">Delete</button>
+</body>
+<script>
+    var editShelter = function () {
+        window.location = window.location + '/edit';
+    };
+
+    var deleteShelter = function () {
+        var req = new XMLHttpRequest();
+        req.open("DELETE", window.location)
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = window.location.origin + '/shelters';
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to delete shelter!");
+            }
+        }
+        req.send()
+    }
+</script>
+
+</html>
