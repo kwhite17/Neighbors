@@ -1,11 +1,11 @@
-compile:
-	go-bindata -pkg retriever -o templates.go templates/... && mv templates.go pkg/retriever && go build cmd/neighbors.go
-
-compile-win:
+compile-win: clean-win
 	go-bindata -pkg assets -o assets.go assets/... && MOVE assets.go pkg/assets && go build cmd/neighbors.go
 
+compile: clean
+	go-bindata -pkg assets -o assets.go assets/templates/... && mv assets.go pkg/assets && go build cmd/neighbors.go
+
 clean-win:
-	DEL neighbors.exe
+	cmd \/C DEL neighbors.exe pkg\assets\assets.go
 
 clean:
-	rm neighbors.exe
+	rm -f neighbors.exe neighbors */**/assets.go
