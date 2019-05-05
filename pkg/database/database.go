@@ -3,14 +3,12 @@ package database
 import (
 	"context"
 	"database/sql"
-	"io/ioutil"
 	"log"
 	"path/filepath"
 
+	"github.com/kwhite17/Neighbors/pkg/assets"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-var NeighborsDatabase = NeighborsDatasource{Database: initDatabase()}
 
 type DbManager interface {
 	ReadAllEntities(ctx context.Context) (*sql.Rows, error)
@@ -28,25 +26,28 @@ type NeighborsDatasource struct {
 	Database *sql.DB
 }
 
-func initDatabase() *sql.DB {
-	db, err := sql.Open("sqlite3", ":memory:")
+func InitDatabase(host string, developmentMode bool) *sql.DB {
+	db, err := sql.Open("sqlite3", host)
 	if err != nil {
 		log.Fatalf("ERROR - dbInit: Connect - %v\n", err)
 	}
-	_, err = db.Exec(loadMigration())
-	if err != nil {
-		log.Fatalf("ERROR - dbInit: Table Creation - %v\n", err)
+	if developmentMode {
+		_, err = db.Exec(loadMigration())
+		if err != nil {
+			log.Fatalf("ERROR - dbInit: Table Creation - %v\n", err)
+		}
 	}
 	return db
 }
 
 func loadMigration() string {
-	migrationFile := filepath.Join("..", "pkg", "database", "neighbors_db.sql")
-	fileBytes, err := ioutil.ReadFile(migrationFile)
+	fullPath := filepath.Join("assets", "scripts", "neighbors_db.sql")
+	migrationFile, err := assets.Asset(fullPath)
 	if err != nil {
 		log.Fatalf("ERROR - migration - %v\n", err)
 	}
-	return string(fileBytes)
+
+	return string(migrationFile)
 }
 
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
