@@ -139,15 +139,15 @@ func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
-	if username := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(username) > 0 {
-		handler.handleGetSingleShelter(w, r, username)
+	if shelter := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(shelter) > 0 {
+		handler.handleGetSingleShelter(w, r, shelter)
 	} else {
 		handler.handleGetAllShelters(w, r)
 	}
 }
 
-func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWriter, r *http.Request, username string) {
-	id, _ := strconv.ParseInt(username, 10, 64)
+func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWriter, r *http.Request, shelterID string) {
+	id, _ := strconv.ParseInt(shelterID, 10, 64)
 	shelter, _ := handler.ShelterManager.GetShelter(r.Context(), id)
 
 	template, _ := handler.ShelterRetriever.RetrieveSingleEntityTemplate()
@@ -162,9 +162,9 @@ func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter,
 }
 
 func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	username := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
+	shelterID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
 
-	_, err := handler.ShelterManager.DeleteShelter(r.Context(), username)
+	_, err := handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)

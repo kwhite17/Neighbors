@@ -1,20 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Edit Item</title>
 </head>
+
 <body>
-    <form action="/items/" method="POST">
+    <form id="createForm">
         Category
         <br>
-        <input type="text" id="categoryText">
+        <input type="text" name="category">
         <br><br>
         Gender
         <br>
-        <div>            
+        <div>
             <input type="radio" name="gender" value="male">
             Male
             <br>
@@ -24,17 +26,41 @@
         <br>
         Size
         <br>
-        <input type="text" id="sizeText">
+        <input type="text" name="size">
         <br> <br>
         Quantity
         <br>
-        <input type="text" id="quantityText">
+        <input type="text" name="quantity">
         <br><br>
-        Dropoff Location
-        <br>
-        <input type="text" id="locationText">
-        <br><br>
-        <button type="submit"></button>
+        <button type="button" onclick="createItem()">Create Item</button>
     </form>
 </body>
+<script>
+    var createItem = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('createForm').elements;
+        var elementUpdate = {
+            Category: formElements.namedItem('category').value,
+            Gender: formElements.namedItem('gender').value,
+            Quantity: formElements.namedItem('quantity').value,
+            Size: formElements.namedItem('size').value,
+            Status: "OPEN",
+        };
+
+        req.open("POST", window.location.origin + '/items/');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 200) {
+                var response = JSON.parse(req.response);
+                window.location = window.location.origin + '/items/' + response.ID;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 200) {
+                alert("Failed to create item!");
+                return false;
+            }
+        };
+        req.send(JSON.stringify(elementUpdate));
+        return false;
+    }
+</script>
+
 </html>

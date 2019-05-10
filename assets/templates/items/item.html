@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Item Description</title>
 </head>
+
 <body>
     <h2>Item Request Detail</h2>
     <strong>Category:</strong>
@@ -20,9 +22,26 @@
     <strong>Quantity:</strong>
     {{.Quantity}}
     <br>
-    <strong>Dropoff Location:</strong>
-    {{.DropoffLocation}}
-    <strong>ID:</strong>
-    {{.ID}}
+    <strong>Status:</strong>
+    {{.Status}}
 </body>
+<script>
+    var editShelter = function () {
+        window.location = window.location + '/edit';
+    };
+
+    var deleteShelter = function () {
+        var req = new XMLHttpRequest();
+        req.open("DELETE", window.location)
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = window.location.origin + '/items';
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to delete item!");
+            }
+        }
+        req.send()
+    }
+</script>
+
 </html>

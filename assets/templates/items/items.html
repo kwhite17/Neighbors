@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Document</title>
 </head>
+
 <body>
     <table>
         <thead>
@@ -22,28 +24,20 @@
                 Quantity
             </th>
             <th>
-                Dropoff Location
+                Status
             </th>
         </thead>
         <tbody>
             {{range $index, $element := . }}
-            <tr>
-                <td>{{ $element.Category }}</td>
-            </tr>
-            <tr>
-                <td>{{ $element.Gender }}</td>
-            </tr>
-            <tr>
-                <td>{{ $element.Size }}</td>
-            </tr>
-            <tr>
-                <td>{{ $element.Quantity }}</td>
-            </tr>
-            <tr>
-                <td>{{ $element.DropoffLocation }}</td>
-            </tr>
+            <td>{{ $element.Category }}</td>
+            <td>{{ $element.Gender }}</td>
+            <td>{{ $element.Size }}</td>
+            <td>{{ $element.Quantity }}</td>
+            <td>{{ $element.Status }}</td>
+            <td><a href="./{{ $element.ID }}">View</a></td>
             {{end}}
         </tbody>
     </table>
 </body>
+
 </html>
