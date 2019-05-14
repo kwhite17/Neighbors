@@ -11,7 +11,7 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
-var TestConnection = database.NeighborsDatabase
+var TestConnection = database.NeighborsDatasource{}
 var createTestUsersQuery = "INSERT INTO users (Username, Password, Location, Role) VALUES (?, ?, ?, ?)"
 var createTestItemsQuery = "INSERT INTO items (Category, Size, Quantity, DropoffLocation, Requestor) VALUES (?, ?, ?, ?, ?)"
 var deleteTestUsersQuery = "DELETE FROM users WHERE Username LIKE 'testUser%'"

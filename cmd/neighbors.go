@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
+	"github.com/kwhite17/Neighbors/pkg/items"
 	"github.com/kwhite17/Neighbors/pkg/shelters"
 )
 
@@ -22,6 +23,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("/shelters/", buildShelterServiceHandler())
+	mux.Handle("/items/", buildItemServiceHandler())
 	http.ListenAndServe(":8080", mux)
 }
 
@@ -29,5 +31,12 @@ func buildShelterServiceHandler() shelters.ShelterServiceHandler {
 	return shelters.ShelterServiceHandler{
 		ShelterRetriever: &shelters.ShelterRetriever{},
 		ShelterManager:   &shelters.ShelterManager{Datasource: NeighborsDatabase},
+	}
+}
+
+func buildItemServiceHandler() items.ItemServiceHandler {
+	return items.ItemServiceHandler{
+		ItemRetriever: &items.ItemRetriever{},
+		ItemManager:   &items.ItemManager{Datasource: NeighborsDatabase},
 	}
 }

@@ -1,56 +1,78 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Edit Item</title>
 </head>
+
 <body>
-    Category
-    <br>
-    <input type="text" id="categoryText">
-    <br><br>
-    Gender
-    <br>
-    <div>            
-        <input type="radio" name="gender" value="male">
-        Male
+    <h1>Update Item Request</h1>
+
+    <form id="editForm">
+        <input type="hidden" name="id" value={{.ID}}>
+        <input type="hidden" name="shelterId" value={{.ShelterID}}>
+        Category
         <br>
-        <input type="radio" name="gender" value="female">
-        Female
-    </div>
-    <br>
-    Size
-    <br>
-    <input type="text" id="sizeText">
-    <br> <br>
-    Quantity
-    <br>
-    <input type="text" id="quantityText">
-    <br><br>
-    Dropoff Location
-    <br>
-    <input type="text" id="locationText">
-    <br><br>
-    <button type="submit" onclick="updateItem"></button>
+        <input type="text" name="category" value={{.Category}}>
+        <br><br>
+        Gender
+        <br>
+        <div>
+            <input type="radio" name="gender" value="male">
+            Male
+            <br>
+            <input type="radio" name="gender" value="female">
+            Female
+        </div>
+        <br><br>
+        Quantity
+        <br>
+        <input type="text" name="quantity" value={{.Quantity}}>
+        <br><br>
+        Size
+        <br>
+        <input type="text" name="size" value={{.Size}}>
+        <br><br>
+        Status
+        <br>
+        <input type="text" name="status" value={{.Status}}>
+        <br><br>
+        <button type="button" onclick="updateItem()">Update Item</button>
+    </form>
 </body>
 <script>
-    var updateItem = function(){
-        var payload = {}
-        payload.Category = document.getElementById("categoryText").value;
-        payload.Size = document.getElementById("sizeText").value;
-        payload.Quantity = document.getElementById("quantityText").value;
-        payload.DropoffLocation = document.getElementById("locationText").value;
-        console.log(payload);
-        var request = new XMLHttpRequest();
-        request.open("PUT", "/v1/items", true)
-        request.onreadystatechange = function() {
-            if (request.status === request.DONE) {
-                console.log(request.respone);
+    var updateItem = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('editForm').elements;
+        var parts = window.location.pathname.split("/");
+        parts.pop();
+        var putPath = window.location.origin + parts.join("/");
+        var elementUpdate = {
+            Category: formElements.namedItem('category').value,
+            Gender: formElements.namedItem('gender').value,
+            Quantity: Number(formElements.namedItem('quantity').value),
+            Size: formElements.namedItem('size').value,
+            Status: formElements.namedItem('status').value,
+            ID: Number(formElements.namedItem('id').value),
+            ShelterID: Number(formElements.namedItem('shelterId').value),
+        };
+
+        req.open("PUT", putPath);
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = putPath;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to update item!");
+                return false;
             }
         }
-        request.send(payload)
-    };
+        req.send(JSON.stringify(elementUpdate));
+        return false;
+    }
 </script>
+
 </html>
