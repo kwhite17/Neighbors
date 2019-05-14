@@ -5,10 +5,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Edit Item</title>
+    <title>Create Item</title>
 </head>
 
 <body>
+    <h1>Item Creation Form</h1>
+
     <form id="createForm">
         Category
         <br>
@@ -42,7 +44,7 @@
         var elementUpdate = {
             Category: formElements.namedItem('category').value,
             Gender: formElements.namedItem('gender').value,
-            Quantity: formElements.namedItem('quantity').value,
+            Quantity: Number(formElements.namedItem('quantity').value),
             Size: formElements.namedItem('size').value,
             Status: "OPEN",
         };

@@ -9,7 +9,7 @@
 </head>
 
 <body>
-    <h2>Item Request Detail</h2>
+    <h2>Item Request</h2>
     <strong>Category:</strong>
     {{.Category}}
     <br>
@@ -24,13 +24,16 @@
     <br>
     <strong>Status:</strong>
     {{.Status}}
+    <br>
+    <button onclick="editItem()">Edit</button>
+    <button onclick="deleteItem()">Delete</button>
 </body>
 <script>
-    var editShelter = function () {
+    var editItem = function () {
         window.location = window.location + '/edit';
     };
 
-    var deleteShelter = function () {
+    var deleteItem = function () {
         var req = new XMLHttpRequest();
         req.open("DELETE", window.location)
         req.onreadystatechange = function () {

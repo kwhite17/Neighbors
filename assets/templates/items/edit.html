@@ -9,6 +9,8 @@
 </head>
 
 <body>
+    <h1>Update Item Request</h1>
+
     <form id="editForm">
         <input type="hidden" name="id" value={{.ID}}>
         <input type="hidden" name="shelterId" value={{.ShelterID}}>
@@ -18,7 +20,13 @@
         <br><br>
         Gender
         <br>
-        <input type="text" name="gender" value={{.Gender}}>
+        <div>
+            <input type="radio" name="gender" value="male">
+            Male
+            <br>
+            <input type="radio" name="gender" value="female">
+            Female
+        </div>
         <br><br>
         Quantity
         <br>
@@ -45,7 +53,7 @@
         var elementUpdate = {
             Category: formElements.namedItem('category').value,
             Gender: formElements.namedItem('gender').value,
-            Quantity: formElements.namedItem('quantity').value,
+            Quantity: Number(formElements.namedItem('quantity').value),
             Size: formElements.namedItem('size').value,
             Status: formElements.namedItem('status').value,
             ID: Number(formElements.namedItem('id').value),
@@ -65,4 +73,6 @@
         req.send(JSON.stringify(elementUpdate));
         return false;
     }
-</script</html>
+</script>
+
+</html>

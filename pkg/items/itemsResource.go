@@ -39,12 +39,13 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		err := utils.RenderTemplate(w, nil, serviceEndpoint+"new.html")
+		t, err := handler.ItemRetriever.RetrieveCreateEntityTemplate()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+		t.Execute(w, nil)
 	case "edit":
 		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
 		if err != nil {
@@ -135,27 +136,27 @@ func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *ht
 }
 
 func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	// if !handler.isAuthorized(authRole, r, nil) {
-	// 	w.WriteHeader(http.StatusUnauthorized)
-	// 	return
-	// }
+	if !handler.isAuthorized(authRole, r, nil) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
 
-	// item := &Item{}
-	// err := json.NewDecoder(r.Body).Decode(item)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+	item := &Item{}
+	err := json.NewDecoder(r.Body).Decode(item)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	// err = handler.ItemManager(r.Context(), shelter)
-	// if err != nil {
-	// 	log.Println(err)
-	// 	w.WriteHeader(http.StatusInternalServerError)
-	// 	return
-	// }
+	err = handler.ItemManager.UpdateItem(r.Context(), item)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	// w.WriteHeader(http.StatusNoContent)
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {

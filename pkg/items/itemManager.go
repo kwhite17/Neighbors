@@ -9,11 +9,12 @@ import (
 
 var createItemQuery = "INSERT INTO items (Category, Gender, Quantity, ShelterID, Size, Status) VALUES (?, ?, ?, ?, ?, ?)"
 var deleteItemQuery = "DELETE FROM items WHERE id=?"
-var getSingleItemQuery = "SELECT * FROM items WHERE ID=?"
+var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status FROM items WHERE ID=?"
 var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items"
+var updateItemQuery = "UPDATE items SET Category = ?, Gender = ?, Quantity = ?, ShelterID = ?, Size = ?, Status = ? WHERE ID = ?"
 
 type ItemManager struct {
-	ds database.Datasource
+	Datasource database.Datasource
 	database.DbManager
 }
 
@@ -60,6 +61,12 @@ func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error)
 	return result.LastInsertId()
 }
 
+func (im *ItemManager) UpdateItem(ctx context.Context, item *Item) error {
+	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status, item.ID}
+	_, err := im.Datasource.ExecuteWriteQuery(ctx, updateItemQuery, values)
+	return err
+}
+
 func (im *ItemManager) DeleteItem(ctx context.Context, id string) (int64, error) {
 	result, err := im.DeleteEntity(ctx, id)
 	if err != nil {
@@ -69,15 +76,15 @@ func (im *ItemManager) DeleteItem(ctx context.Context, id string) (int64, error)
 }
 
 func (im *ItemManager) ReadEntity(ctx context.Context, id int64) (*sql.Rows, error) {
-	return im.ds.ExecuteReadQuery(ctx, getSingleItemQuery, []interface{}{id})
+	return im.Datasource.ExecuteReadQuery(ctx, getSingleItemQuery, []interface{}{id})
 }
 
 func (im *ItemManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return im.ds.ExecuteReadQuery(ctx, getAllItemsQuery, nil)
+	return im.Datasource.ExecuteReadQuery(ctx, getAllItemsQuery, nil)
 }
 
 func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := im.ds.ExecuteWriteQuery(ctx, createItemQuery, values)
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, createItemQuery, values)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +92,7 @@ func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (s
 }
 
 func (im *ItemManager) DeleteEntity(ctx context.Context, id string) (sql.Result, error) {
-	result, err := im.ds.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id})
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id})
 	if err != nil {
 		return nil, err
 	}
