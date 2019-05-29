@@ -12,9 +12,9 @@ import (
 
 type DbManager interface {
 	ReadAllEntities(ctx context.Context) (*sql.Rows, error)
-	ReadEntity(ctx context.Context, id int64) (*sql.Rows, error)
+	ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error)
 	WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error)
-	DeleteEntity(ctx context.Context, id string) (sql.Result, error)
+	DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error)
 }
 
 type Datasource interface {
@@ -53,7 +53,7 @@ func loadMigration() string {
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
 	resultSet, err := nd.Database.QueryContext(ctx, query, arguments...)
 	if err != nil {
-		log.Printf("ERROR - ReadQuery - %v\n", err)
+		log.Printf("ERROR - ReadQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
 	}
 	return resultSet, nil
@@ -62,7 +62,7 @@ func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string
 func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
 	result, err := nd.Database.ExecContext(ctx, query, arguments...)
 	if err != nil {
-		log.Printf("ERROR - WriteQuery - %v\n", err)
+		log.Printf("ERROR - WriteQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
 	}
 	return result, nil

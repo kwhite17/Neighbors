@@ -1,95 +1,76 @@
 package login
 
 import (
-	"context"
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
-	"time"
+	"strings"
 
-	"github.com/google/uuid"
-	"github.com/kwhite17/Neighbors/pkg/database"
+	"github.com/kwhite17/Neighbors/pkg/shelters"
 	"golang.org/x/crypto/bcrypt"
 )
 
-type LoginServiceHandler struct {
-	Database database.Datasource
-}
+var serviceEndpoint = "/login/"
 
-func (lsh LoginServiceHandler) GetDatasource() database.Datasource {
-	return lsh.Database
+type LoginServiceHandler struct {
+	ShelterSessionManager *shelters.ShelterSessionManager
+	ShelterManager        *shelters.ShelterManager
+	LoginRetriever        *LoginRetriever
 }
 
 func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
-	case "POST":
-		username := r.FormValue("username")
-		hash, err := lsh.getPasswordForComparison(r.Context(), username)
+	case "GET":
+		t, err := lsh.LoginRetriever.RetrieveSingleEntityTemplate()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(hash), []byte(r.FormValue("password")))
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			log.Println(err)
-			return
-		}
-		cookieID := username + "-" + uuid.New().String()
-		cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: true, MaxAge: 24 * 3600 * 7, Secure: true}
-		err = lsh.generateUserSession(r.Context(), username, cookieID)
+		t.Execute(w, nil)
+	case "DELETE":
+		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+		shelterID := pathArray[len(pathArray)-1]
+
+		lsh.ShelterSessionManager.DeleteShelterSession(r.Context(), shelterID)
+	case "POST":
+		loginData := make(map[string]string, 0)
+		err := json.NewDecoder(r.Body).Decode(&loginData)
+
+		shelter, err := lsh.ShelterManager.GetPasswordForUsername(r.Context(), loginData["Name"])
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
+
+		err = bcrypt.CompareHashAndPassword([]byte(shelter.Password), []byte(loginData["Password"]))
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		// currentTime := time.Now().Unix()
+		// err = lsh.ShelterSessionManager.UpdateShelterSession(r.Context(), shelter.ID, currentTime, currentTime)
+		// if err != nil {
+		// 	log.Println(err)
+		// 	w.WriteHeader(http.StatusInternalServerError)
+		// 	return
+		// }
+
+		shelterSession, err := lsh.ShelterSessionManager.GetShelterSession(r.Context(), shelter.ID)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+
+		cookie := http.Cookie{Name: "NeighborsAuth", Value: shelterSession.SessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false}
 		http.SetCookie(w, &cookie)
-		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(shelterSession)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}
-}
-
-func (lsh LoginServiceHandler) getPasswordForComparison(ctx context.Context, username string) (string, error) {
-	result, err := lsh.Database.ExecuteReadQuery(ctx, "SELECT Password FROM users WHERE Username=?", []interface{}{username})
-	if err != nil {
-		return "", fmt.Errorf("ERROR - LoginService - Database Read: %v\n", err)
-	}
-	for result.Next() {
-		var password string
-		if err := result.Scan(&password); err != nil {
-			return "", fmt.Errorf("ERROR - LoginService - Result Parse: %v\n", err)
-		}
-		return password, nil
-	}
-	return "", fmt.Errorf("ERROR - LoginService - No Such User")
-}
-
-func (lsh LoginServiceHandler) generateUserSession(ctx context.Context, username string, cookieID string) error {
-	result, err := lsh.Database.ExecuteReadQuery(ctx, "SELECT ID, Role FROM users WHERE Username=?", []interface{}{username})
-	if err != nil {
-		return fmt.Errorf("ERROR - LoginService - Database Write: %v\n", err)
-	}
-	for result.Next() {
-		var ID int64
-		var role string
-		if err := result.Scan(&ID, &role); err != nil {
-			return fmt.Errorf("ERROR - LoginService - Result Parse: %v\n", err)
-		}
-		currentTime := time.Now().Unix()
-		sessionResult, err := lsh.Database.ExecuteWriteQuery(ctx,
-			"INSERT INTO userSession (SessionKey, UserID, LoginTime, LastSeenTime, Role) VALUES (?, ?, ?, ?, ?)",
-			[]interface{}{cookieID, ID, currentTime, currentTime, role})
-		if err != nil {
-			return fmt.Errorf("ERROR - LoginService - SessionCreation: %v\n", err)
-		}
-		rowsChanged, err := sessionResult.RowsAffected()
-		if err != nil || rowsChanged < int64(1) {
-			return fmt.Errorf("ERROR - LoginService - SessionCreation: %v, RowsChanged: %d\n", err, rowsChanged)
-		}
-		return nil
-	}
-	return fmt.Errorf("ERROR - LoginService - No Such User")
 }

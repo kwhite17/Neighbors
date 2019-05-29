@@ -28,7 +28,7 @@ type Item struct {
 	Status    string
 }
 
-func (im *ItemManager) GetItem(ctx context.Context, id int64) (*Item, error) {
+func (im *ItemManager) GetItem(ctx context.Context, id interface{}) (*Item, error) {
 	result, err := im.ReadEntity(ctx, id)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func (im *ItemManager) UpdateItem(ctx context.Context, item *Item) error {
 	return err
 }
 
-func (im *ItemManager) DeleteItem(ctx context.Context, id string) (int64, error) {
+func (im *ItemManager) DeleteItem(ctx context.Context, id interface{}) (int64, error) {
 	result, err := im.DeleteEntity(ctx, id)
 	if err != nil {
 		return -1, err
@@ -75,7 +75,7 @@ func (im *ItemManager) DeleteItem(ctx context.Context, id string) (int64, error)
 	return result.RowsAffected()
 }
 
-func (im *ItemManager) ReadEntity(ctx context.Context, id int64) (*sql.Rows, error) {
+func (im *ItemManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
 	return im.Datasource.ExecuteReadQuery(ctx, getSingleItemQuery, []interface{}{id})
 }
 
@@ -91,7 +91,7 @@ func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (s
 	return result, nil
 }
 
-func (im *ItemManager) DeleteEntity(ctx context.Context, id string) (sql.Result, error) {
+func (im *ItemManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
 	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id})
 	if err != nil {
 		return nil, err

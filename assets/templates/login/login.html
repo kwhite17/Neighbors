@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Neighbors: Shelter Login</title>
+</head>
+
+<h1>Loging</h1>
+
+<body>
+    <form id="loginForm">
+        Shelter Name
+        <br>
+        <input type="text" name="name">
+        <br><br>
+        Password
+        <br>
+        <input type="password" name="password">
+        <br><br>
+        <button type="button" onclick="login()">Register Shelter</button>
+    </form>
+</body>
+<script>
+    var login = function () {
+        var req = new XMLHttpRequest();
+        req.withCredentials = true;
+        var formElements = document.getElementById('loginForm').elements;
+        var elementUpdate = {
+            Name: formElements.namedItem('name').value,
+            Password: formElements.namedItem('password').value,
+        };
+
+        req.open("POST", window.location.origin + '/login/');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 200) {
+                var response = JSON.parse(req.response);
+                window.location = window.location.origin + '/shelters/' + response.ShelterID;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 200) {
+                alert("Failed to login!");
+                return false;
+            }
+        };
+        req.send(JSON.stringify(elementUpdate));
+        return false;
+    }
+</script>
+
+</html>

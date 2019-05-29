@@ -13,8 +13,9 @@ import (
 var serviceEndpoint = "/shelters/"
 
 type ShelterServiceHandler struct {
-	ShelterManager   *ShelterManager
-	ShelterRetriever *ShelterRetriever
+	ShelterManager        *ShelterManager
+	ShelterSessionManager *ShelterSessionManager
+	ShelterRetriever      *ShelterRetriever
 }
 
 func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -95,18 +96,32 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 		return
 	}
 
-	contactInfo := &ContactInformation{}
-	err := json.NewDecoder(r.Body).Decode(contactInfo)
+	createData := make(map[string]interface{}, 0)
+	err := json.NewDecoder(r.Body).Decode(&createData)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	shelter := &Shelter{ContactInformation: contactInfo}
-	shelterID, _ := handler.ShelterManager.WriteShelter(r.Context(), shelter)
-	shelter.ID = shelterID
+	shelter := &Shelter{ContactInformation: handler.buildContactInformation(createData)}
+	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter, createData["Password"].(string))
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
+	shelter.ID = shelterID
+	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID)
+	if err != nil {
+		handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false}
+	http.SetCookie(w, &cookie)
 	json.NewEncoder(w).Encode(shelter)
 }
 
@@ -172,6 +187,17 @@ func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, 
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (handler ShelterServiceHandler) buildContactInformation(createData map[string]interface{}) *ContactInformation {
+	return &ContactInformation{
+		City:       createData["City"].(string),
+		Country:    createData["Country"].(string),
+		Name:       createData["Name"].(string),
+		PostalCode: createData["PostalCode"].(string),
+		State:      createData["State"].(string),
+		Street:     createData["Street"].(string),
+	}
 }
 
 func (handler ShelterServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {

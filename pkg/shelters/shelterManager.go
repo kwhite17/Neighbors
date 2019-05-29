@@ -3,15 +3,18 @@ package shelters
 import (
 	"context"
 	"database/sql"
+	"fmt"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterQuery = "INSERT INTO shelters (City, Country, Name, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?)"
+var createShelterQuery = "INSERT INTO shelters (City, Country, Name, Password, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?, ?)"
 var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
-var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters where id=?"
-var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters"
+var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=?"
+var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters"
 var updateShelterQuery = "UPDATE shelters SET City = ?, Country = ?, Name = ?, PostalCode = ?, State = ?, Street = ? WHERE ID = ?"
+var getPasswordForUsernameQuery = "SELECT ID, City, Country, Name, Password, PostalCode, State, Street FROM shelters WHERE Name = ?"
 
 type ShelterManager struct {
 	Datasource database.Datasource
@@ -28,11 +31,12 @@ type ContactInformation struct {
 }
 
 type Shelter struct {
-	ID int64
+	ID       int64
+	Password string
 	*ContactInformation
 }
 
-func (sm *ShelterManager) GetShelter(ctx context.Context, id int64) (*Shelter, error) {
+func (sm *ShelterManager) GetShelter(ctx context.Context, id interface{}) (*Shelter, error) {
 	result, err := sm.ReadEntity(ctx, id)
 	if err != nil {
 		return nil, err
@@ -56,8 +60,38 @@ func (sm *ShelterManager) GetShelters(ctx context.Context) ([]*Shelter, error) {
 	return shelters, nil
 }
 
-func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter) (int64, error) {
-	values := []interface{}{shelter.City, shelter.Country, shelter.Name, shelter.PostalCode, shelter.State, shelter.Street}
+func (sm *ShelterManager) GetPasswordForUsername(ctx context.Context, username string) (*Shelter, error) {
+	result, err := sm.Datasource.ExecuteReadQuery(ctx, getPasswordForUsernameQuery, []interface{}{username})
+	if err != nil {
+		return nil, err
+	}
+
+	for result.Next() {
+		var id int64
+		var city string
+		var country string
+		var name string
+		var password string
+		var postalCode string
+		var state string
+		var street string
+		if err := result.Scan(&id, &city, &country, &name, &password, &postalCode, &state, &street); err != nil {
+			return nil, err
+		}
+		contactInfo := &ContactInformation{City: city, Country: country, Name: name, PostalCode: postalCode, State: state, Street: street}
+		shelter := Shelter{ID: id, Password: password, ContactInformation: contactInfo}
+		return &shelter, nil
+	}
+	return nil, fmt.Errorf("Username or password invalid")
+}
+
+func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, unencryptedPassword string) (int64, error) {
+	encryptedPassword, err := sm.encryptPassword(unencryptedPassword)
+	if err != nil {
+		return -1, err
+	}
+
+	values := []interface{}{shelter.City, shelter.Country, shelter.Name, encryptedPassword, shelter.PostalCode, shelter.State, shelter.Street}
 	result, err := sm.WriteEntity(ctx, values)
 	if err != nil {
 		return -1, err
@@ -71,7 +105,7 @@ func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) e
 	return err
 }
 
-func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, error) {
+func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (int64, error) {
 	result, err := sm.DeleteEntity(ctx, id)
 	if err != nil {
 		return -1, err
@@ -79,7 +113,7 @@ func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, 
 	return result.RowsAffected()
 }
 
-func (sm *ShelterManager) ReadEntity(ctx context.Context, id int64) (*sql.Rows, error) {
+func (sm *ShelterManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
 	return sm.Datasource.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 }
 
@@ -95,12 +129,20 @@ func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{})
 	return result, nil
 }
 
-func (sm *ShelterManager) DeleteEntity(ctx context.Context, id string) (sql.Result, error) {
+func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
 	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
+}
+
+func (sm *ShelterManager) encryptPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }
 
 func (sm *ShelterManager) buildShelters(result *sql.Rows) ([]*Shelter, error) {

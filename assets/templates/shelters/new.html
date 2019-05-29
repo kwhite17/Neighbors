@@ -16,6 +16,10 @@
         <br>
         <input type="text" name="name">
         <br><br>
+        Password
+        <br>
+        <input type="password" name="password">
+        <br><br>
         Street
         <br>
         <input type="text" name="street">
@@ -42,9 +46,11 @@
 <script>
     var createShelter = function () {
         var req = new XMLHttpRequest();
+        req.withCredentials = true;
         var formElements = document.getElementById('createForm').elements;
         var elementUpdate = {
             Name: formElements.namedItem('name').value,
+            Password: formElements.namedItem('password').value,
             Street: formElements.namedItem('street').value,
             City: formElements.namedItem('city').value,
             State: formElements.namedItem('state').value,
