@@ -1,4 +1,4 @@
-package shelters
+package login
 
 import (
 	"context"
@@ -9,12 +9,14 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/kwhite17/Neighbors/pkg/database"
+	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?)"
+var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, Name, Password, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?, ?)"
 var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE ShelterID=?"
-var getShelterSessionQuery = "SELECT SessionKey, ShelterID, LoginTime, LastSeenTime FROM shelterSessions WHERE ShelterID=?"
+var getShelterSessionQuery = "SELECT SessionKey, ShelterID, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
 var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
+var getPasswordForUsernameQuery = "SELECT SessionKey, ShelterID, Password FROM shelterSessions WHERE Name = ?"
 
 type ShelterSessionManager struct {
 	Datasource database.Datasource
@@ -24,12 +26,14 @@ type ShelterSessionManager struct {
 type ShelterSession struct {
 	SessionKey   string
 	ShelterID    int64
+	Name         string
+	Password     string
 	LoginTime    int64
 	LastSeenTime int64
 }
 
-func (sm *ShelterSessionManager) GetShelterSession(ctx context.Context, shelterID interface{}) (*ShelterSession, error) {
-	result, err := sm.ReadEntity(ctx, shelterID)
+func (sm *ShelterSessionManager) GetShelterSession(ctx context.Context, sessionKey interface{}) (*ShelterSession, error) {
+	result, err := sm.ReadEntity(ctx, sessionKey)
 	if err != nil {
 		return nil, err
 	}
@@ -40,11 +44,16 @@ func (sm *ShelterSessionManager) GetShelterSession(ctx context.Context, shelterI
 	return shelter[0], nil
 }
 
-func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelterID int64) (string, error) {
+func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelterID int64, username string, unencryptedPassword string) (string, error) {
+	encryptedPassword, err := sm.encryptPassword(unencryptedPassword)
+	if err != nil {
+		return "", err
+	}
+
 	cookieID := strconv.FormatInt(shelterID, 10) + "-" + uuid.New().String()
 	currentTime := time.Now().Unix()
-	values := []interface{}{cookieID, shelterID, currentTime, currentTime}
-	_, err := sm.WriteEntity(ctx, values)
+	values := []interface{}{cookieID, shelterID, username, encryptedPassword, currentTime, currentTime}
+	_, err = sm.WriteEntity(ctx, values)
 	if err != nil {
 		return "", err
 	}
@@ -63,6 +72,25 @@ func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, shelt
 		return -1, err
 	}
 	return result.RowsAffected()
+}
+
+func (sm *ShelterSessionManager) GetPasswordForUsername(ctx context.Context, username string) (*ShelterSession, error) {
+	result, err := sm.Datasource.ExecuteReadQuery(ctx, getPasswordForUsernameQuery, []interface{}{username})
+	if err != nil {
+		return nil, err
+	}
+
+	for result.Next() {
+		var sessionKey string
+		var shelterID int64
+		var password string
+		if err := result.Scan(&sessionKey, &shelterID, &password); err != nil {
+			return nil, err
+		}
+		shelter := ShelterSession{SessionKey: sessionKey, ShelterID: shelterID, Password: password}
+		return &shelter, nil
+	}
+	return nil, fmt.Errorf("Username or password invalid")
 }
 
 func (sm *ShelterSessionManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
@@ -103,4 +131,12 @@ func (sm *ShelterSessionManager) buildShelterSession(result *sql.Rows) ([]*Shelt
 		response = append(response, shelterSession)
 	}
 	return response, nil
+}
+
+func (sm *ShelterSessionManager) encryptPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return "", err
+	}
+	return string(hash), nil
 }

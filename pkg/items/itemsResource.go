@@ -7,35 +7,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kwhite17/Neighbors/pkg/utils"
+	"github.com/kwhite17/Neighbors/pkg/login"
 )
 
 var serviceEndpoint = "/items/"
 
 type ItemServiceHandler struct {
-	ItemManager   *ItemManager
-	ItemRetriever *ItemRetriever
+	ItemManager           *ItemManager
+	ItemRetriever         *ItemRetriever
+	ShelterSessionManager *login.ShelterSessionManager
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authRole := &utils.AuthRole{}
-	// if authRole == nil {
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		err = nil
-	// 	}
-	// 	response, err := http.Get("/login/")
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 	}
-	// 	page, err := ioutil.ReadAll(response.Body)
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	w.Write(page)
-	// 	return
-	// }
+	cookie, _ := r.Cookie("NeighborsAuth")
+	if !handler.isAuthorized(r, cookie) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
@@ -69,31 +58,26 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		}
 		t.Execute(w, item)
 	default:
-		handler.requestMethodHandler(w, r, authRole)
+		handler.requestMethodHandler(w, r)
 	}
 }
 
-func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		handler.handleCreateItem(w, r, authRole)
+		handler.handleCreateItem(w, r)
 	case http.MethodGet:
-		handler.handleGetItem(w, r, authRole)
+		handler.handleGetItem(w, r)
 	case http.MethodDelete:
-		handler.handleDeleteItem(w, r, authRole)
+		handler.handleDeleteItem(w, r)
 	case http.MethodPut:
-		handler.handleUpdateItem(w, r, authRole)
+		handler.handleUpdateItem(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
+func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request) {
 	item := &Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
@@ -108,11 +92,7 @@ func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *htt
 	json.NewEncoder(w).Encode(item)
 }
 
-func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request) {
 	if item := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(item) > 0 {
 		handler.handleGetSingleItem(w, r, item)
 	} else {
@@ -135,12 +115,7 @@ func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *ht
 	template.Execute(w, items)
 }
 
-func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
+func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
 	item := &Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
@@ -159,7 +134,7 @@ func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
 	shelterID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
 
 	_, err := handler.ItemManager.DeleteItem(r.Context(), shelterID)
@@ -172,54 +147,57 @@ func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ItemServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {
-	return true
-	// if role == nil {
-	// 	return false
-	// }
-	// switch r.Method {
-	// case http.MethodGet:
-	// 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
-	// 	switch pathArray[len(pathArray)-1] {
-	// 	case "edit":
-	// 		itemID := pathArray[len(pathArray)-2]
-	// 		itemData, err := utils.HandleGetSingleElementRequest(r, ish, getSingleItemQuery, itemID)
-	// 		if err != nil {
-	// 			log.Println(err)
-	// 			return false
-	// 		}
-	// 		return itemData[0]["Requestor"] == role.ID && role.Role == "NEIGHBOR"
-	// 	default:
-	// 		return true
-	// 	}
-	// case http.MethodPost:
-	// 	return role.Role == "NEIGHBOR"
-	// case http.MethodDelete:
-	// 	if data == nil {
-	// 		return false
-	// 	}
-	// 	return data["Requestor"] == role.ID && role.Role == "SAMARITAN"
-	// case http.MethodPut:
-	// 	if data == nil {
-	// 		return false
-	// 	}
-	// 	orderStatus, ok := data["OrderStatus"]
-	// 	if !ok {
-	// 		return false
-	// 	}
-	// 	switch orderStatus {
-	// 	case "REQUESTED":
-	// 		return role.Role == "SAMARITAN"
-	// 	case "ASSIGNED":
-	// 		fallthrough
-	// 	case "PURCHASED":
-	// 		return role.Role == "SAMARITAN" && data["Fulfiller"] == role.ID
-	// 	case "DELIVERED":
-	// 		return data["Requestor"] == role.ID && role.Role == "NEIGHBOR"
-	// 	default:
-	// 		return false
-	// 	}
-	// default:
-	// 	return false
-	// }
+func (handler ItemServiceHandler) isAuthorized(r *http.Request, cookie *http.Cookie) bool {
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	switch r.Method {
+	case http.MethodPost:
+		return cookie != nil
+	case http.MethodPut:
+		fallthrough
+	case http.MethodDelete:
+		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		item, err := handler.ItemManager.GetItem(r.Context(), itemID)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		return item.ShelterID == shelterSession.ShelterID
+	case http.MethodGet:
+		if pathArray[len(pathArray)-1] == "edit" {
+			shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+
+			itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+
+			item, err := handler.ItemManager.GetItem(r.Context(), itemID)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+
+			return item.ShelterID == shelterSession.ShelterID
+		}
+		return true
+	default:
+		return false
+	}
 }

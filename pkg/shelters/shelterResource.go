@@ -7,37 +7,24 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/kwhite17/Neighbors/pkg/utils"
+	"github.com/kwhite17/Neighbors/pkg/login"
 )
 
 var serviceEndpoint = "/shelters/"
 
 type ShelterServiceHandler struct {
 	ShelterManager        *ShelterManager
-	ShelterSessionManager *ShelterSessionManager
+	ShelterSessionManager *login.ShelterSessionManager
 	ShelterRetriever      *ShelterRetriever
 }
 
 func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	authRole := &utils.AuthRole{}
-	// authRole, err := utils.IsAuthenticated(handler, w, r)
-	// if authRole == nil && r.Method != http.MethodPost {
-	// 	if err != nil {
-	// 		log.Println(err)
-	// 		err = nil
-	// 	}
-	// 	response, err := http.Get("/login/")
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 	}
-	// 	page, err := ioutil.ReadAll(response.Body)
-	// 	if err != nil {
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	w.Write(page)
-	// 	return
-	// }
+	cookie, _ := r.Cookie("NeighborsAuth")
+	if !handler.isAuthorized(r, cookie) {
+		w.WriteHeader(http.StatusUnauthorized)
+		return
+	}
+
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
@@ -71,31 +58,26 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		}
 		t.Execute(w, shelter)
 	default:
-		handler.requestMethodHandler(w, r, authRole)
+		handler.requestMethodHandler(w, r)
 	}
 }
 
-func (handler ShelterServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+func (handler ShelterServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
-		handler.handleCreateShelter(w, r, authRole)
+		handler.handleCreateShelter(w, r)
 	case http.MethodGet:
-		handler.handleGetShelter(w, r, authRole)
+		handler.handleGetShelter(w, r)
 	case http.MethodDelete:
-		handler.handleDeleteShelter(w, r, authRole)
+		handler.handleDeleteShelter(w, r)
 	case http.MethodPut:
-		handler.handleUpdateShelter(w, r, authRole)
+		handler.handleUpdateShelter(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
+func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, r *http.Request) {
 	createData := make(map[string]interface{}, 0)
 	err := json.NewDecoder(r.Body).Decode(&createData)
 	if err != nil {
@@ -105,7 +87,7 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 	}
 
 	shelter := &Shelter{ContactInformation: handler.buildContactInformation(createData)}
-	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter, createData["Password"].(string))
+	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -113,7 +95,7 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 	}
 
 	shelter.ID = shelterID
-	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID)
+	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID, shelter.Name, createData["Password"].(string))
 	if err != nil {
 		handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
 		log.Println(err)
@@ -125,12 +107,7 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 	json.NewEncoder(w).Encode(shelter)
 }
 
-func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
-
+func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, r *http.Request) {
 	shelter := &Shelter{}
 	err := json.NewDecoder(r.Body).Decode(shelter)
 	if err != nil {
@@ -149,11 +126,7 @@ func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
-	if !handler.isAuthorized(authRole, r, nil) {
-		w.WriteHeader(http.StatusUnauthorized)
-		return
-	}
+func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request) {
 	if shelter := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(shelter) > 0 {
 		handler.handleGetSingleShelter(w, r, shelter)
 	} else {
@@ -176,7 +149,7 @@ func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter,
 	template.Execute(w, shelters)
 }
 
-func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request, authRole *utils.AuthRole) {
+func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request) {
 	shelterID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
 
 	_, err := handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
@@ -200,36 +173,45 @@ func (handler ShelterServiceHandler) buildContactInformation(createData map[stri
 	}
 }
 
-func (handler ShelterServiceHandler) isAuthorized(role *utils.AuthRole, r *http.Request, data map[string]interface{}) bool {
-	return true
-	// if role == nil {
-	// 	return false
-	// }
-	// switch r.Method {
-	// case http.MethodGet:
-	// 	return true
-	// 	// pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
-	// 	// switch pathArray[len(pathArray)-1] {
-	// 	// case "edit":
-	// 	// 	userID := pathArray[len(pathArray)-2]
-	// 	// 	id, err := strconv.ParseInt(userID, 10, 64)
+func (handler ShelterServiceHandler) isAuthorized(r *http.Request, cookie *http.Cookie) bool {
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	switch r.Method {
+	case http.MethodPost:
+		return cookie == nil
+	case http.MethodPut:
+		fallthrough
+	case http.MethodDelete:
+		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
 
-	// 	// 	userData, err := handler.ShelterManager.GetShelter(r.Context(), id)
-	// 	// 	if err != nil {
-	// 	// 		log.Println(err)
-	// 	// 		return false
-	// 	// 	}
-	// 	// 	return userData.ID == role.ID
-	// 	// default:
-	// 	// 	return true
-	// 	// }
-	// case http.MethodPost:
-	// 	return true
-	// case http.MethodPut:
-	// 	fallthrough
-	// case http.MethodDelete:
-	// 	return role.ID == data["ID"]
-	// default:
-	// 	return false
-	// }
+		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
+		if err != nil {
+			log.Println(err)
+			return false
+		}
+
+		return shelterSession.ShelterID == shelterID
+	case http.MethodGet:
+		if pathArray[len(pathArray)-1] == "edit" {
+			shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+
+			shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
+			if err != nil {
+				log.Println(err)
+				return false
+			}
+
+			return shelterSession.ShelterID == shelterID
+		}
+		return true
+	default:
+		return false
+	}
 }

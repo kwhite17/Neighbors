@@ -22,7 +22,7 @@ func main() {
 
 	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(*dbHost, *developmentMode)}
 	shelterManager := &shelters.ShelterManager{Datasource: NeighborsDatabase}
-	shelterSessionManager := &shelters.ShelterSessionManager{Datasource: NeighborsDatabase}
+	shelterSessionManager := &login.ShelterSessionManager{Datasource: NeighborsDatabase}
 	mux := http.NewServeMux()
 
 	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager))
@@ -31,7 +31,7 @@ func main() {
 	http.ListenAndServe(":8080", mux)
 }
 
-func buildShelterServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *shelters.ShelterSessionManager) shelters.ShelterServiceHandler {
+func buildShelterServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager) shelters.ShelterServiceHandler {
 	return shelters.ShelterServiceHandler{
 		ShelterRetriever:      &shelters.ShelterRetriever{},
 		ShelterManager:        shelterManager,
@@ -46,9 +46,8 @@ func buildItemServiceHandler() items.ItemServiceHandler {
 	}
 }
 
-func buildLoginServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *shelters.ShelterSessionManager) login.LoginServiceHandler {
+func buildLoginServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager) login.LoginServiceHandler {
 	return login.LoginServiceHandler{
-		ShelterManager:        shelterManager,
 		ShelterSessionManager: shelterSessionManager,
 		LoginRetriever:        &login.LoginRetriever{},
 	}
