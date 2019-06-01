@@ -9,8 +9,8 @@ import (
 
 var createShelterQuery = "INSERT INTO shelters (City, Country, Name, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?)"
 var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
-var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters where id=?"
-var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street from shelters"
+var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=?"
+var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters"
 var updateShelterQuery = "UPDATE shelters SET City = ?, Country = ?, Name = ?, PostalCode = ?, State = ?, Street = ? WHERE ID = ?"
 
 type ShelterManager struct {
@@ -32,7 +32,7 @@ type Shelter struct {
 	*ContactInformation
 }
 
-func (sm *ShelterManager) GetShelter(ctx context.Context, id int64) (*Shelter, error) {
+func (sm *ShelterManager) GetShelter(ctx context.Context, id interface{}) (*Shelter, error) {
 	result, err := sm.ReadEntity(ctx, id)
 	if err != nil {
 		return nil, err
@@ -71,7 +71,7 @@ func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) e
 	return err
 }
 
-func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, error) {
+func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (int64, error) {
 	result, err := sm.DeleteEntity(ctx, id)
 	if err != nil {
 		return -1, err
@@ -79,7 +79,7 @@ func (sm *ShelterManager) DeleteShelter(ctx context.Context, id string) (int64, 
 	return result.RowsAffected()
 }
 
-func (sm *ShelterManager) ReadEntity(ctx context.Context, id int64) (*sql.Rows, error) {
+func (sm *ShelterManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
 	return sm.Datasource.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 }
 
@@ -95,7 +95,7 @@ func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{})
 	return result, nil
 }
 
-func (sm *ShelterManager) DeleteEntity(ctx context.Context, id string) (sql.Result, error) {
+func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
 	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
 	if err != nil {
 		return nil, err
