@@ -5,6 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -50,13 +51,13 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		// currentTime := time.Now().Unix()
-		// err = lsh.ShelterSessionManager.UpdateShelterSession(r.Context(), shelterSession.ShelterID, currentTime, currentTime)
-		// if err != nil {
-		// 	log.Println(err)
-		// 	w.WriteHeader(http.StatusInternalServerError)
-		// 	return
-		// }
+		currentTime := time.Now().Unix()
+		err = lsh.ShelterSessionManager.UpdateShelterSession(r.Context(), shelterSession.ShelterID, currentTime, currentTime)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 
 		cookie := http.Cookie{Name: "NeighborsAuth", Value: shelterSession.SessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false}
 		shelterSession.Password = ""

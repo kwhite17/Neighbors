@@ -37,6 +37,7 @@ func InitDatabase(host string, developmentMode bool) *sql.DB {
 			log.Fatalf("ERROR - dbInit: Table Creation - %v\n", err)
 		}
 	}
+	db.SetMaxOpenConns(1) //ax this when I switch to production db
 	return db
 }
 
