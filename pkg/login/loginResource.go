@@ -4,13 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
 
-var serviceEndpoint = "/login/"
+var serviceEndpoint = "/session/"
 
 type LoginServiceHandler struct {
 	ShelterSessionManager *ShelterSessionManager
@@ -29,10 +28,19 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		t.Execute(w, nil)
 	case "DELETE":
-		pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
-		shelterID := pathArray[len(pathArray)-1]
+		cookie, err := r.Cookie("NeighborsAuth")
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
 
-		lsh.ShelterSessionManager.DeleteShelterSession(r.Context(), shelterID)
+		_, err = lsh.ShelterSessionManager.DeleteShelterSession(r.Context(), cookie.Value)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+
+		w.WriteHeader(http.StatusNoContent)
 	case "POST":
 		loginData := make(map[string]string, 0)
 		err := json.NewDecoder(r.Body).Decode(&loginData)
@@ -59,7 +67,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		cookie := http.Cookie{Name: "NeighborsAuth", Value: shelterSession.SessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false}
+		cookie := http.Cookie{Name: "NeighborsAuth", Value: shelterSession.SessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false, Path: "/"}
 		shelterSession.Password = ""
 		http.SetCookie(w, &cookie)
 		json.NewEncoder(w).Encode(shelterSession)

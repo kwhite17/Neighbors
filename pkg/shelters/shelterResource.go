@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/kwhite17/Neighbors/pkg/items"
 	"github.com/kwhite17/Neighbors/pkg/login"
 )
 
@@ -14,6 +15,7 @@ var serviceEndpoint = "/shelters/"
 
 type ShelterServiceHandler struct {
 	ShelterManager        *ShelterManager
+	ItemManager           *items.ItemManager
 	ShelterSessionManager *login.ShelterSessionManager
 	ShelterRetriever      *ShelterRetriever
 }
@@ -138,8 +140,13 @@ func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWrite
 	id, _ := strconv.ParseInt(shelterID, 10, 64)
 	shelter, _ := handler.ShelterManager.GetShelter(r.Context(), id)
 
+	items, _ := handler.ItemManager.GetItemsForShelter(r.Context(), id)
 	template, _ := handler.ShelterRetriever.RetrieveSingleEntityTemplate()
-	template.Execute(w, shelter)
+
+	responseObject := make(map[string]interface{}, 0)
+	responseObject["Shelter"] = shelter
+	responseObject["Items"] = items
+	template.Execute(w, responseObject)
 }
 
 func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter, r *http.Request) {

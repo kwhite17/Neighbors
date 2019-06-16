@@ -12,6 +12,7 @@ var deleteItemQuery = "DELETE FROM items WHERE id=?"
 var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status FROM items WHERE ID=?"
 var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items"
 var updateItemQuery = "UPDATE items SET Category = ?, Gender = ?, Quantity = ?, ShelterID = ?, Size = ?, Status = ? WHERE ID = ?"
+var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items WHERE ShelterID = ?"
 
 type ItemManager struct {
 	Datasource database.Datasource
@@ -52,6 +53,18 @@ func (im *ItemManager) GetItems(ctx context.Context) ([]*Item, error) {
 	return items, nil
 }
 
+func (im *ItemManager) GetItemsForShelter(ctx context.Context, shelterID int64) ([]*Item, error) {
+	result, err := im.ReadEntitiesWithQuery(ctx, getItemsForShelterQuery, []interface{}{shelterID})
+	if err != nil {
+		return nil, err
+	}
+	items, err := im.buildItems(result)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error) {
 	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status}
 	result, err := im.WriteEntity(ctx, values)
@@ -80,7 +93,11 @@ func (im *ItemManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Row
 }
 
 func (im *ItemManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return im.Datasource.ExecuteReadQuery(ctx, getAllItemsQuery, nil)
+	return im.ReadEntitiesWithQuery(ctx, getAllItemsQuery, nil)
+}
+
+func (im *ItemManager) ReadEntitiesWithQuery(ctx context.Context, query string, args []interface{}) (*sql.Rows, error) {
+	return im.Datasource.ExecuteReadQuery(ctx, query, args)
 }
 
 func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {

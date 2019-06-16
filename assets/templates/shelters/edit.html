@@ -8,9 +8,10 @@
     <title>Neighbors: Shelter Registration</title>
 </head>
 
-<h1>Update Shelter</h1>
 
 <body>
+    <button onclick="logout()">Log Out</button>
+    <h1>Update Shelter</h1>
     <form id="editForm">
         <input type="hidden" name="id" value={{.ID}}>
         Shelter Name
@@ -41,6 +42,23 @@
     </form>
 </body>
 <script>
+    var logout = function () {
+        var req = new XMLHttpRequest();
+        var homePage = window.location.origin;
+
+        req.open("DELETE", homePage + '/session/logout');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = homePage;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to log out!");
+                return false;
+            }
+        }
+        req.send();
+    }
+
     var updateShelter = function () {
         var req = new XMLHttpRequest();
         var formElements = document.getElementById('editForm').elements;

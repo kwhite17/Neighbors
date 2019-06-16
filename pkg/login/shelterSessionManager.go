@@ -13,7 +13,7 @@ import (
 )
 
 var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, Name, Password, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?, ?)"
-var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE ShelterID=?"
+var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=?"
 var getShelterSessionQuery = "SELECT SessionKey, ShelterID, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
 var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
 var getPasswordForUsernameQuery = "SELECT SessionKey, ShelterID, Password FROM shelterSessions WHERE Name = ?"
@@ -66,8 +66,8 @@ func (sm *ShelterSessionManager) UpdateShelterSession(ctx context.Context, shelt
 	return err
 }
 
-func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, shelterID interface{}) (int64, error) {
-	result, err := sm.DeleteEntity(ctx, shelterID)
+func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, sessionKey interface{}) (int64, error) {
+	result, err := sm.DeleteEntity(ctx, sessionKey)
 	if err != nil {
 		return -1, err
 	}

@@ -8,6 +8,7 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 	"github.com/kwhite17/Neighbors/pkg/items"
 	"github.com/kwhite17/Neighbors/pkg/login"
+	"github.com/kwhite17/Neighbors/pkg/retriever"
 	"github.com/kwhite17/Neighbors/pkg/shelters"
 )
 
@@ -22,20 +23,32 @@ func main() {
 
 	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(*dbHost, *developmentMode)}
 	shelterManager := &shelters.ShelterManager{Datasource: NeighborsDatabase}
+	itemManager := &items.ItemManager{Datasource: NeighborsDatabase}
 	shelterSessionManager := &login.ShelterSessionManager{Datasource: NeighborsDatabase}
 	mux := http.NewServeMux()
 
-	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager))
+	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager, itemManager))
 	mux.Handle("/items/", buildItemServiceHandler())
-	mux.Handle("/login/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
+	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
+	mux.HandleFunc("/", loadHomePage)
 	http.ListenAndServe(":8080", mux)
 }
 
-func buildShelterServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager) shelters.ShelterServiceHandler {
+func loadHomePage(w http.ResponseWriter, r *http.Request) {
+	t, err := retriever.RetrieveTemplate("home/index")
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+	t.Execute(w, nil)
+}
+
+func buildShelterServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager, itemManager *items.ItemManager) shelters.ShelterServiceHandler {
 	return shelters.ShelterServiceHandler{
 		ShelterRetriever:      &shelters.ShelterRetriever{},
 		ShelterManager:        shelterManager,
 		ShelterSessionManager: shelterSessionManager,
+		ItemManager:           itemManager,
 	}
 }
 
