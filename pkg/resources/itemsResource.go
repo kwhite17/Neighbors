@@ -1,4 +1,4 @@
-package items
+package resources
 
 import (
 	"encoding/json"
@@ -6,16 +6,18 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/kwhite17/Neighbors/pkg/login"
+	"github.com/kwhite17/Neighbors/pkg/managers"
+	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
-var serviceEndpoint = "/items/"
+var itemsEndpoint = "/items/"
 
 type ItemServiceHandler struct {
-	ItemManager           *ItemManager
-	ItemRetriever         *ItemRetriever
-	ShelterSessionManager *login.ShelterSessionManager
+	ItemManager           *managers.ItemManager
+	ItemRetriever         *retrievers.ItemRetriever
+	ShelterSessionManager *managers.ShelterSessionManager
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -25,7 +27,7 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
 		t, err := handler.ItemRetriever.RetrieveCreateEntityTemplate()
@@ -78,7 +80,7 @@ func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r 
 }
 
 func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request) {
-	item := &Item{}
+	item := &managers.Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
 		log.Println(err)
@@ -93,7 +95,7 @@ func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *htt
 }
 
 func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request) {
-	if item := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(item) > 0 {
+	if item := strings.TrimPrefix(r.URL.Path, itemsEndpoint); len(item) > 0 {
 		handler.handleGetSingleItem(w, r, item)
 	} else {
 		handler.handleGetAllItems(w, r)
@@ -116,7 +118,7 @@ func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *ht
 }
 
 func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
-	item := &Item{}
+	item := &managers.Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
 		log.Println(err)
@@ -135,7 +137,7 @@ func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *htt
 }
 
 func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
-	shelterID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
+	shelterID := strings.TrimPrefix(r.URL.Path, itemsEndpoint)
 
 	_, err := handler.ItemManager.DeleteItem(r.Context(), shelterID)
 	if err != nil {
@@ -148,10 +150,10 @@ func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *htt
 }
 
 func (handler ItemServiceHandler) isAuthorized(r *http.Request, cookie *http.Cookie) bool {
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
 	switch r.Method {
 	case http.MethodPost:
-		return cookie != nil
+		return cookie != nil && time.Now().After(cookie.Expires)
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:

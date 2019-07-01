@@ -20,6 +20,7 @@ type DbManager interface {
 type Datasource interface {
 	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error)
 	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error)
+	ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row
 }
 
 type NeighborsDatasource struct {
@@ -49,6 +50,10 @@ func loadMigration() string {
 	}
 
 	return string(migrationFile)
+}
+
+func (nd NeighborsDatasource) ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row {
+	return nd.Database.QueryRowContext(ctx, query, arguments...)
 }
 
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {

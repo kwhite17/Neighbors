@@ -1,19 +1,22 @@
-package login
+package resources
 
 import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/kwhite17/Neighbors/pkg/managers"
+	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
 var serviceEndpoint = "/session/"
 
 type LoginServiceHandler struct {
-	ShelterSessionManager *ShelterSessionManager
-	LoginRetriever        *LoginRetriever
+	ShelterSessionManager *managers.ShelterSessionManager
+	ShelterManager        *managers.ShelterManager
+	LoginRetriever        *retrievers.LoginRetriever
 }
 
 func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -45,32 +48,31 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		loginData := make(map[string]string, 0)
 		err := json.NewDecoder(r.Body).Decode(&loginData)
 
-		shelterSession, err := lsh.ShelterSessionManager.GetPasswordForUsername(r.Context(), loginData["Name"])
+		shelter, err := lsh.ShelterManager.GetPasswordForUsername(r.Context(), loginData["Name"])
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		err = bcrypt.CompareHashAndPassword([]byte(shelterSession.Password), []byte(loginData["Password"]))
+		err = bcrypt.CompareHashAndPassword([]byte(shelter.Password), []byte(loginData["Password"]))
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusUnauthorized)
 			return
 		}
 
-		currentTime := time.Now().Unix()
-		err = lsh.ShelterSessionManager.UpdateShelterSession(r.Context(), shelterSession.ShelterID, currentTime, currentTime)
+		sessionKey, err := lsh.ShelterSessionManager.WriteShelterSession(r.Context(), shelter.ID, loginData["Name"])
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		cookie := http.Cookie{Name: "NeighborsAuth", Value: shelterSession.SessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false, Path: "/"}
-		shelterSession.Password = ""
+		cookie := http.Cookie{Name: "NeighborsAuth", Value: sessionKey, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false, Path: "/"}
+		shelter.Password = ""
 		http.SetCookie(w, &cookie)
-		json.NewEncoder(w).Encode(shelterSession)
+		json.NewEncoder(w).Encode(shelter)
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}

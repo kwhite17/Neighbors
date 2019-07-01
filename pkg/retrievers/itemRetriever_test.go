@@ -1,13 +1,23 @@
-package items
+package retrievers
 
 import (
 	"bytes"
 	"io/ioutil"
+	"math/rand"
 	"strings"
 	"testing"
+
+	"github.com/kwhite17/Neighbors/pkg/managers"
 )
 
 var itemRetriever = &ItemRetriever{}
+
+var testCategory = "testCategory"
+var testGender = "testGender"
+var testQuantity = int8(rand.Int() % 127)
+var testShelterID = rand.Int63()
+var testSize = "testSize"
+var testStatus = "testStatus"
 
 func TestRenderItemTemplate(t *testing.T) {
 	testArray := make([]byte, 0)
@@ -59,7 +69,7 @@ func TestRenderAllItemsTemplate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tmpl.Execute(testBuffer, []*Item{testItem})
+	tmpl.Execute(testBuffer, []*managers.Item{testItem})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
 	if err != nil {
 		t.Error(err)
@@ -68,5 +78,15 @@ func TestRenderAllItemsTemplate(t *testing.T) {
 	htmlStr := string(htmlBytes)
 	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, testItem.Status) {
 		t.Errorf("TestRenderAllItemsTemplate Failure - Expected html to contain 'strong' or correct status: %s, Actual: %s\n", testItem.Status, htmlStr)
+	}
+}
+func generateItem() *managers.Item {
+	return &managers.Item{
+		Category:  testCategory,
+		Gender:    testGender,
+		Quantity:  testQuantity,
+		ShelterID: testShelterID,
+		Size:      testSize,
+		Status:    testStatus,
 	}
 }

@@ -37,7 +37,7 @@
         req.onreadystatechange = function () {
             if (req.readyState === 4 && req.status === 200) {
                 var response = JSON.parse(req.response);
-                window.location = window.location.origin + '/shelters/' + response.ShelterID;
+                window.location = window.location.origin + '/shelters/' + response.ID;
                 return false;
             } else if (req.readyState === 4 && req.status !== 200) {
                 alert("Failed to login!");

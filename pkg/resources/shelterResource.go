@@ -1,23 +1,24 @@
-package shelters
+package resources
 
 import (
+	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
 
-	"github.com/kwhite17/Neighbors/pkg/items"
-	"github.com/kwhite17/Neighbors/pkg/login"
+	"github.com/kwhite17/Neighbors/pkg/managers"
+	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
-var serviceEndpoint = "/shelters/"
+var sheltersEndpoint = "/shelters/"
 
 type ShelterServiceHandler struct {
-	ShelterManager        *ShelterManager
-	ItemManager           *items.ItemManager
-	ShelterSessionManager *login.ShelterSessionManager
-	ShelterRetriever      *ShelterRetriever
+	ShelterManager        *managers.ShelterManager
+	ItemManager           *managers.ItemManager
+	ShelterSessionManager *managers.ShelterSessionManager
+	ShelterRetriever      *retrievers.ShelterRetriever
 }
 
 func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -27,7 +28,7 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
 		t, err := handler.ShelterRetriever.RetrieveCreateEntityTemplate()
@@ -88,8 +89,8 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 		return
 	}
 
-	shelter := &Shelter{ContactInformation: handler.buildContactInformation(createData)}
-	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter)
+	shelter := &managers.Shelter{ContactInformation: handler.buildContactInformation(createData)}
+	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter, createData["Password"].(string))
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -97,20 +98,20 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 	}
 
 	shelter.ID = shelterID
-	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID, shelter.Name, createData["Password"].(string))
+	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID, shelter.Name)
 	if err != nil {
 		handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
-	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false}
+	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false, Path: "/"}
 	http.SetCookie(w, &cookie)
 	json.NewEncoder(w).Encode(shelter)
 }
 
 func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, r *http.Request) {
-	shelter := &Shelter{}
+	shelter := &managers.Shelter{}
 	err := json.NewDecoder(r.Body).Decode(shelter)
 	if err != nil {
 		log.Println(err)
@@ -129,7 +130,7 @@ func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, 
 }
 
 func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request) {
-	if shelter := strings.TrimPrefix(r.URL.Path, serviceEndpoint); len(shelter) > 0 {
+	if shelter := strings.TrimPrefix(r.URL.Path, sheltersEndpoint); len(shelter) > 0 {
 		handler.handleGetSingleShelter(w, r, shelter)
 	} else {
 		handler.handleGetAllShelters(w, r)
@@ -157,7 +158,7 @@ func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter,
 }
 
 func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request) {
-	shelterID := strings.TrimPrefix(r.URL.Path, serviceEndpoint)
+	shelterID := strings.TrimPrefix(r.URL.Path, sheltersEndpoint)
 
 	_, err := handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
 	if err != nil {
@@ -169,8 +170,8 @@ func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ShelterServiceHandler) buildContactInformation(createData map[string]interface{}) *ContactInformation {
-	return &ContactInformation{
+func (handler ShelterServiceHandler) buildContactInformation(createData map[string]interface{}) *managers.ContactInformation {
+	return &managers.ContactInformation{
 		City:       createData["City"].(string),
 		Country:    createData["Country"].(string),
 		Name:       createData["Name"].(string),
@@ -181,10 +182,16 @@ func (handler ShelterServiceHandler) buildContactInformation(createData map[stri
 }
 
 func (handler ShelterServiceHandler) isAuthorized(r *http.Request, cookie *http.Cookie) bool {
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, serviceEndpoint), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/")
 	switch r.Method {
 	case http.MethodPost:
-		return cookie == nil
+		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		if err != nil {
+			log.Println(err)
+			return err == sql.ErrNoRows
+		}
+
+		return shelterSession == nil
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:

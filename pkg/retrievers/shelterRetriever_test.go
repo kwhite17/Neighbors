@@ -1,11 +1,20 @@
-package shelters
+package retrievers
 
 import (
 	"bytes"
 	"io/ioutil"
 	"strings"
 	"testing"
+
+	"github.com/kwhite17/Neighbors/pkg/managers"
 )
+
+var testCity = "testCity"
+var testCountry = "testCountry"
+var testName = "testName"
+var testPostalCode = "testPostalCode"
+var testState = "testState"
+var testStreet = "testStreet"
 
 var shelterRetriever = &ShelterRetriever{}
 
@@ -59,7 +68,7 @@ func TestRenderAllSheltersTemplate(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	tmpl.Execute(testBuffer, []*Shelter{testShelter})
+	tmpl.Execute(testBuffer, []*managers.Shelter{testShelter})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
 	if err != nil {
 		t.Error(err)
@@ -69,4 +78,17 @@ func TestRenderAllSheltersTemplate(t *testing.T) {
 	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, testShelter.City) {
 		t.Errorf("GetAllShelters Failure - Expected html to contain 'strong' or correct city: %s, Actual: %s\n", testShelter.City, htmlStr)
 	}
+}
+
+func generateShelter() *managers.Shelter {
+	contactInfo := &managers.ContactInformation{
+		City:       testCity,
+		Country:    testCountry,
+		Name:       testName,
+		PostalCode: testPostalCode,
+		State:      testState,
+		Street:     testStreet,
+	}
+
+	return &managers.Shelter{ContactInformation: contactInfo}
 }

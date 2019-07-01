@@ -6,10 +6,9 @@ import (
 	"net/http"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
-	"github.com/kwhite17/Neighbors/pkg/items"
-	"github.com/kwhite17/Neighbors/pkg/login"
-	"github.com/kwhite17/Neighbors/pkg/retriever"
-	"github.com/kwhite17/Neighbors/pkg/shelters"
+	"github.com/kwhite17/Neighbors/pkg/managers"
+	"github.com/kwhite17/Neighbors/pkg/resources"
+	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
 var NeighborsDatabase database.NeighborsDatasource
@@ -22,9 +21,9 @@ func main() {
 	log.Println("Development mode set to:", *developmentMode)
 
 	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(*dbHost, *developmentMode)}
-	shelterManager := &shelters.ShelterManager{Datasource: NeighborsDatabase}
-	itemManager := &items.ItemManager{Datasource: NeighborsDatabase}
-	shelterSessionManager := &login.ShelterSessionManager{Datasource: NeighborsDatabase}
+	shelterManager := &managers.ShelterManager{Datasource: NeighborsDatabase}
+	itemManager := &managers.ItemManager{Datasource: NeighborsDatabase}
+	shelterSessionManager := &managers.ShelterSessionManager{Datasource: NeighborsDatabase}
 	mux := http.NewServeMux()
 
 	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager, itemManager))
@@ -35,7 +34,7 @@ func main() {
 }
 
 func loadHomePage(w http.ResponseWriter, r *http.Request) {
-	t, err := retriever.RetrieveTemplate("home/index")
+	t, err := retrievers.RetrieveTemplate("home/index")
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -43,25 +42,26 @@ func loadHomePage(w http.ResponseWriter, r *http.Request) {
 	t.Execute(w, nil)
 }
 
-func buildShelterServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager, itemManager *items.ItemManager) shelters.ShelterServiceHandler {
-	return shelters.ShelterServiceHandler{
-		ShelterRetriever:      &shelters.ShelterRetriever{},
+func buildShelterServiceHandler(shelterManager *managers.ShelterManager, shelterSessionManager *managers.ShelterSessionManager, itemManager *managers.ItemManager) resources.ShelterServiceHandler {
+	return resources.ShelterServiceHandler{
+		ShelterRetriever:      &retrievers.ShelterRetriever{},
 		ShelterManager:        shelterManager,
 		ShelterSessionManager: shelterSessionManager,
 		ItemManager:           itemManager,
 	}
 }
 
-func buildItemServiceHandler() items.ItemServiceHandler {
-	return items.ItemServiceHandler{
-		ItemRetriever: &items.ItemRetriever{},
-		ItemManager:   &items.ItemManager{Datasource: NeighborsDatabase},
+func buildItemServiceHandler() resources.ItemServiceHandler {
+	return resources.ItemServiceHandler{
+		ItemRetriever: &retrievers.ItemRetriever{},
+		ItemManager:   &managers.ItemManager{Datasource: NeighborsDatabase},
 	}
 }
 
-func buildLoginServiceHandler(shelterManager *shelters.ShelterManager, shelterSessionManager *login.ShelterSessionManager) login.LoginServiceHandler {
-	return login.LoginServiceHandler{
+func buildLoginServiceHandler(shelterManager *managers.ShelterManager, shelterSessionManager *managers.ShelterSessionManager) resources.LoginServiceHandler {
+	return resources.LoginServiceHandler{
+		ShelterManager:        shelterManager,
 		ShelterSessionManager: shelterSessionManager,
-		LoginRetriever:        &login.LoginRetriever{},
+		LoginRetriever:        &retrievers.LoginRetriever{},
 	}
 }
