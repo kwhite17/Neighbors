@@ -9,6 +9,8 @@
 </head>
 
 <body>
+    <button onclick="logout()">Log Out</button>
+    <input type="hidden" id="associatedShelter" value="{{.ShelterID}}" />
     <h2>Item Request</h2>
     <strong>Category:</strong>
     {{.Category}}
@@ -25,12 +27,31 @@
     <strong>Status:</strong>
     {{.Status}}
     <br>
-    <button onclick="editItem()">Edit</button>
+    <button onclick="viewShelter()">View Shelter</button>
+    <button><a href="./{{.ID}}/edit">Edit</a></button>
     <button onclick="deleteItem()">Delete</button>
 </body>
 <script>
-    var editItem = function () {
-        window.location = window.location + '/edit';
+    var logout = function () {
+        var req = new XMLHttpRequest();
+        var homePage = window.location.origin;
+
+        req.open("DELETE", homePage + '/session/logout');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = homePage;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to log out!");
+                return false;
+            }
+        }
+        req.send();
+    }
+
+    var viewShelter = function () {
+        var shelterId = doucment.getElementById('associatedShelter').value;
+        window.location = window.location + '/shelters/' + shelterId;
     };
 
     var deleteItem = function () {

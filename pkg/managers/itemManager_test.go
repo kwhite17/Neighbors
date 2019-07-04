@@ -1,4 +1,4 @@
-package items
+package managers
 
 import (
 	"context"
@@ -20,7 +20,7 @@ var testShelterID = rand.Int63()
 var testSize = "testSize"
 var testStatus = "testStatus"
 
-func TestCanReadItsOwnWrite(t *testing.T) {
+func TestCanReadItsOwnItemWrite(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -29,7 +29,7 @@ func TestCanReadItsOwnWrite(t *testing.T) {
 	testItem := generateItem()
 
 	mock.ExpectExec(createItemQuery).WithArgs(itemToRow(testItem)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ItemManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ItemManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteItem(context.Background(), testItem)
 	if err != nil {
 		t.Error(err)
@@ -62,7 +62,7 @@ func TestItCanDeleteItem(t *testing.T) {
 	testItem := generateItem()
 
 	mock.ExpectExec(createItemQuery).WithArgs(itemToRow(testItem)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ItemManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ItemManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteItem(context.Background(), testItem)
 	if err != nil {
 		t.Error(err)
@@ -90,7 +90,7 @@ func TestItCanGetAllItems(t *testing.T) {
 	defer db.Close()
 	testItems := make([]*Item, 0)
 	expectedRows := make([][]driver.Value, 0)
-	manager := &ItemManager{ds: &database.NeighborsDatasource{Database: db}}
+	manager := &ItemManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	for i := 0; i < 5; i++ {
 		testItem := generateItem()
 

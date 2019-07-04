@@ -1,4 +1,4 @@
-package shelters
+package managers
 
 import (
 	"context"
@@ -19,7 +19,7 @@ var testPostalCode = "testPostalCode"
 var testState = "testState"
 var testStreet = "testStreet"
 
-func TestCanReadItsOwnWrite(t *testing.T) {
+func TestCanReadItsOwnShelterWrite(t *testing.T) {
 	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
 	if err != nil {
 		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
@@ -29,7 +29,7 @@ func TestCanReadItsOwnWrite(t *testing.T) {
 
 	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
 	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
-	id, err := manager.WriteShelter(context.Background(), testShelter)
+	id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,7 +62,7 @@ func TestItCanDeleteShelter(t *testing.T) {
 
 	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
 	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
-	id, err := manager.WriteShelter(context.Background(), testShelter)
+	id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 	if err != nil {
 		t.Error(err)
 	}
@@ -94,7 +94,7 @@ func TestItCanGetAllShelters(t *testing.T) {
 		testShelter := generateShelter()
 
 		mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
-		id, err := manager.WriteShelter(context.Background(), testShelter)
+		id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 		if err != nil {
 			t.Error(err)
 		}
@@ -117,7 +117,7 @@ func TestItCanGetAllShelters(t *testing.T) {
 	}
 
 	for _, shelter := range allShelters {
-		if !contains(shelter, testShelters) {
+		if !containsShelter(shelter, testShelters) {
 			t.Errorf("Expected %v to be in %v \n", shelter, testShelters)
 		}
 	}
@@ -144,7 +144,7 @@ func generateShelter() *Shelter {
 	return &Shelter{ContactInformation: contactInfo}
 }
 
-func contains(candidateShelter *Shelter, expectedShelters []*Shelter) bool {
+func containsShelter(candidateShelter *Shelter, expectedShelters []*Shelter) bool {
 	for _, shelter := range expectedShelters {
 		if reflect.DeepEqual(candidateShelter, shelter) {
 			return true

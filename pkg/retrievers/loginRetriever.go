@@ -1,16 +1,14 @@
-package login
+package retrievers
 
 import (
 	"fmt"
 	"html/template"
-
-	"github.com/kwhite17/Neighbors/pkg/retriever"
 )
 
 var loginTemplatePath = "login/login"
 
 type LoginRetriever struct {
-	retriever.TemplateRetriever
+	TemplateRetriever
 }
 
 func (lr LoginRetriever) RetrieveCreateEntityTemplate() (*template.Template, error) {
@@ -18,7 +16,7 @@ func (lr LoginRetriever) RetrieveCreateEntityTemplate() (*template.Template, err
 }
 
 func (lr LoginRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return retriever.RetrieveTemplate(loginTemplatePath)
+	return RetrieveTemplate(loginTemplatePath)
 }
 
 func (lr LoginRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {

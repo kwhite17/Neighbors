@@ -1,9 +1,7 @@
-package shelters
+package retrievers
 
 import (
 	"html/template"
-
-	"github.com/kwhite17/Neighbors/pkg/retriever"
 )
 
 var createShelterTemplatePath = "shelters/new"
@@ -12,21 +10,21 @@ var getSheltersTemplatePath = "shelters/shelters"
 var updateSheltersTemplatePath = "shelters/edit"
 
 type ShelterRetriever struct {
-	retriever.TemplateRetriever
+	TemplateRetriever
 }
 
 func (sr ShelterRetriever) RetrieveCreateEntityTemplate() (*template.Template, error) {
-	return retriever.RetrieveTemplate(createShelterTemplatePath)
+	return RetrieveTemplate(createShelterTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return retriever.RetrieveTemplate(getShelterTemplatePath)
+	return RetrieveTemplate(getShelterTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {
-	return retriever.RetrieveTemplate(getSheltersTemplatePath)
+	return RetrieveTemplate(getSheltersTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveEditEntityTemplate() (*template.Template, error) {
-	return retriever.RetrieveTemplate(updateSheltersTemplatePath)
+	return RetrieveTemplate(updateSheltersTemplatePath)
 }

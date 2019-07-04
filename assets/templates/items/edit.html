@@ -9,8 +9,8 @@
 </head>
 
 <body>
+    <button onclick="logout()">Log Out</button>
     <h1>Update Item Request</h1>
-
     <form id="editForm">
         <input type="hidden" name="id" value={{.ID}}>
         <input type="hidden" name="shelterId" value={{.ShelterID}}>
@@ -44,6 +44,23 @@
     </form>
 </body>
 <script>
+    var logout = function () {
+        var req = new XMLHttpRequest();
+        var homePage = window.location.origin;
+
+        req.open("DELETE", homePage + '/session/logout');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = homePage;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to log out!");
+                return false;
+            }
+        }
+        req.send();
+    }
+
     var updateItem = function () {
         var req = new XMLHttpRequest();
         var formElements = document.getElementById('editForm').elements;
