@@ -9,26 +9,33 @@
 </head>
 
 <body>
-    <button onclick="logout()">Log Out</button>
-    <input type="hidden" id="associatedShelter" value="{{.ShelterID}}" />
+    <div>
+        {{if .ShelterSession}}
+        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button onclick="logout()">Log Out</button>
+        {{else}}
+        <button><a href="/session/login">Login</a></button>
+        {{end}}
+    </div>
+    <input type="hidden" id="associatedShelter" value="{{.Item.ShelterID}}" />
     <h2>Item Request</h2>
     <strong>Category:</strong>
-    {{.Category}}
+    {{.Item.Category}}
     <br>
     <strong>Gender:</strong>
-    {{.Gender}}
+    {{.Item.Gender}}
     <br>
     <strong>Size:</strong>
-    {{.Size}}
+    {{.Item.Size}}
     <br>
     <strong>Quantity:</strong>
-    {{.Quantity}}
+    {{.Item.Quantity}}
     <br>
     <strong>Status:</strong>
-    {{.Status}}
+    {{.Item.Status}}
     <br>
-    <button onclick="viewShelter()">View Shelter</button>
-    <button><a href="./{{.ID}}/edit">Edit</a></button>
+    <button><a href="/shelters/{{.Item.ShelterID}}">View Shelter</a></button>
+    <button><a href="./{{.Item.ID}}/edit">Edit</a></button>
     <button onclick="deleteItem()">Delete</button>
 </body>
 <script>

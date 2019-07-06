@@ -10,33 +10,40 @@
 
 
 <body>
-    <button onclick="logout()">Log Out</button>
+    <div>
+        {{if .ShelterSession}}
+        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button onclick="logout()">Log Out</button>
+        {{else}}
+        <button><a href="/session/login">Login</a></button>
+        {{end}}
+    </div>
     <h1>Update Shelter</h1>
     <form id="editForm">
-        <input type="hidden" name="id" value={{.ID}}>
+        <input type="hidden" name="id" value={{.Shetler.ID}}>
         Shelter Name
         <br>
-        <input type="text" name="name" value={{.Name}}>
+        <input type="text" name="name" value={{.Shelter.Name}}>
         <br><br>
         Street
         <br>
-        <input type="text" name="street" value={{.Street}}>
+        <input type="text" name="street" value={{.Shelter.Street}}>
         <br><br>
         City
         <br>
-        <input type="text" name="city" value={{.City}}>
+        <input type="text" name="city" value={{.Shelter.City}}>
         <br><br>
         State
         <br>
-        <input type="text" name="state" value={{.State}}>
+        <input type="text" name="state" value={{.Shelter.State}}>
         <br><br>
         Postal Code
         <br>
-        <input type="text" name="postalCode" value={{.PostalCode}}>
+        <input type="text" name="postalCode" value={{.Shelter.PostalCode}}>
         <br><br>
         Country
         <br>
-        <input type="text" name="country" value={{.Country}}>
+        <input type="text" name="country" value={{.Shelter.Country}}>
         <br><br>
         <button type="button" onclick="updateShelter()">Update Shelter</button>
     </form>

@@ -22,8 +22,8 @@ type ShelterServiceHandler struct {
 }
 
 func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	cookie, _ := r.Cookie("NeighborsAuth")
-	if !handler.isAuthorized(r, cookie) {
+	isAuthorized, shelterSession := handler.isAuthorized(r)
+	if !isAuthorized {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
@@ -59,18 +59,22 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		t.Execute(w, shelter)
+
+		responseObject := make(map[string]interface{}, 0)
+		responseObject["Shelter"] = shelter
+		responseObject["ShelterSession"] = shelterSession
+		t.Execute(w, responseObject)
 	default:
-		handler.requestMethodHandler(w, r)
+		handler.requestMethodHandler(w, r, shelterSession)
 	}
 }
 
-func (handler ShelterServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request) {
+func (handler ShelterServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
 	switch r.Method {
 	case http.MethodPost:
 		handler.handleCreateShelter(w, r)
 	case http.MethodGet:
-		handler.handleGetShelter(w, r)
+		handler.handleGetShelter(w, r, shelterSession)
 	case http.MethodDelete:
 		handler.handleDeleteShelter(w, r)
 	case http.MethodPut:
@@ -129,15 +133,15 @@ func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request) {
+func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
 	if shelter := strings.TrimPrefix(r.URL.Path, sheltersEndpoint); len(shelter) > 0 {
-		handler.handleGetSingleShelter(w, r, shelter)
+		handler.handleGetSingleShelter(w, r, shelter, shelterSession)
 	} else {
-		handler.handleGetAllShelters(w, r)
+		handler.handleGetAllShelters(w, r, shelterSession)
 	}
 }
 
-func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWriter, r *http.Request, shelterID string) {
+func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWriter, r *http.Request, shelterID string, shelterSession *managers.ShelterSession) {
 	id, _ := strconv.ParseInt(shelterID, 10, 64)
 	shelter, _ := handler.ShelterManager.GetShelter(r.Context(), id)
 
@@ -147,14 +151,18 @@ func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWrite
 	responseObject := make(map[string]interface{}, 0)
 	responseObject["Shelter"] = shelter
 	responseObject["Items"] = items
+	responseObject["ShelterSession"] = shelterSession
 	template.Execute(w, responseObject)
 }
 
-func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter, r *http.Request) {
+func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
 	shelters, _ := handler.ShelterManager.GetShelters(r.Context())
 
 	template, _ := handler.ShelterRetriever.RetrieveAllEntitiesTemplate()
-	template.Execute(w, shelters)
+	responseObject := make(map[string]interface{}, 0)
+	responseObject["Shelters"] = shelters
+	responseObject["ShelterSession"] = shelterSession
+	template.Execute(w, responseObject)
 }
 
 func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request) {
@@ -181,51 +189,62 @@ func (handler ShelterServiceHandler) buildContactInformation(createData map[stri
 	}
 }
 
-func (handler ShelterServiceHandler) isAuthorized(r *http.Request, cookie *http.Cookie) bool {
+func (handler ShelterServiceHandler) isAuthorized(r *http.Request) (bool, *managers.ShelterSession) {
+	cookie, _ := r.Cookie("NeighborsAuth")
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/")
 	switch r.Method {
 	case http.MethodPost:
+		if cookie == nil {
+			return true, nil
+		}
 		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
-			return err == sql.ErrNoRows
+			return err == sql.ErrNoRows, shelterSession
 		}
 
-		return shelterSession == nil
+		return shelterSession == nil, shelterSession
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:
+		if cookie == nil {
+			return false, nil
+		}
 		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
-			return false
+			return false, shelterSession
 		}
 
 		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
 		if err != nil {
 			log.Println(err)
-			return false
+			return false, shelterSession
 		}
 
-		return shelterSession.ShelterID == shelterID
+		return shelterSession.ShelterID == shelterID, shelterSession
 	case http.MethodGet:
-		if pathArray[len(pathArray)-1] == "edit" {
-			shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
-			if err != nil {
+		var err error
+		shelterSession := &managers.ShelterSession{}
+		if cookie != nil {
+			shelterSession, err = handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			if err != nil && err != sql.ErrNoRows {
 				log.Println(err)
-				return false
+				return false, shelterSession
 			}
+		}
 
+		if pathArray[len(pathArray)-1] == "edit" {
 			shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
 			if err != nil {
 				log.Println(err)
-				return false
+				return false, shelterSession
 			}
 
-			return shelterSession.ShelterID == shelterID
+			return shelterSession != nil && shelterSession.ShelterID == shelterID, shelterSession
 		}
-		return true
+		return true, shelterSession
 	default:
-		return false
+		return false, nil
 	}
 }

@@ -27,7 +27,7 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager, itemManager))
-	mux.Handle("/items/", buildItemServiceHandler())
+	mux.Handle("/items/", buildItemServiceHandler(shelterSessionManager))
 	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
 	mux.HandleFunc("/", loadHomePage)
 	http.ListenAndServe(":8080", mux)
@@ -51,10 +51,11 @@ func buildShelterServiceHandler(shelterManager *managers.ShelterManager, shelter
 	}
 }
 
-func buildItemServiceHandler() resources.ItemServiceHandler {
+func buildItemServiceHandler(shelterSessionManager *managers.ShelterSessionManager) resources.ItemServiceHandler {
 	return resources.ItemServiceHandler{
-		ItemRetriever: &retrievers.ItemRetriever{},
-		ItemManager:   &managers.ItemManager{Datasource: NeighborsDatabase},
+		ItemRetriever:         &retrievers.ItemRetriever{},
+		ItemManager:           &managers.ItemManager{Datasource: NeighborsDatabase},
+		ShelterSessionManager: shelterSessionManager,
 	}
 }
 
