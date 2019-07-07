@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?)"
+var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?)"
 var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=?"
 var getShelterSessionQuery = "SELECT SessionKey, ShelterID, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
 var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
@@ -25,6 +25,7 @@ type ShelterSessionManager struct {
 type ShelterSession struct {
 	SessionKey   string
 	ShelterID    int64
+	ShelterName  string
 	LoginTime    int64
 	LastSeenTime int64
 }
@@ -44,7 +45,7 @@ func (sm *ShelterSessionManager) GetShelterSession(ctx context.Context, sessionK
 func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelterID int64, username string) (string, error) {
 	cookieID := strconv.FormatInt(shelterID, 10) + "-" + uuid.New().String()
 	currentTime := time.Now().Unix()
-	values := []interface{}{cookieID, shelterID, currentTime, currentTime}
+	values := []interface{}{cookieID, shelterID, username, currentTime, currentTime}
 	_, err := sm.WriteEntity(ctx, values)
 	if err != nil {
 		return "", err

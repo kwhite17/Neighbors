@@ -27,18 +27,20 @@ type NeighborsDatasource struct {
 	Database *sql.DB
 }
 
-func InitDatabase(host string, developmentMode bool) *sql.DB {
-	db, err := sql.Open("sqlite3", host)
+func InitDatabase(dbConfig *DbConfig) *sql.DB {
+	db, err := sql.Open(dbConfig.Driver, dbConfig.Host)
 	if err != nil {
 		log.Fatalf("ERROR - dbInit: Connect - %v\n", err)
 	}
-	if developmentMode {
+	if dbConfig.DevelopmentMode {
 		_, err = db.Exec(loadMigration())
 		if err != nil {
 			log.Fatalf("ERROR - dbInit: Table Creation - %v\n", err)
 		}
 	}
-	db.SetMaxOpenConns(1) //ax this when I switch to production db
+	if dbConfig.Driver == SQLITE3.Driver {
+		db.SetMaxOpenConns(1) //ax this when I switch to production db
+	}
 	return db
 }
 

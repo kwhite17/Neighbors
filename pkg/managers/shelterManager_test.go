@@ -2,14 +2,13 @@ package managers
 
 import (
 	"context"
-	"database/sql/driver"
+	"database/sql"
 	"reflect"
 	"strconv"
 	"testing"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
-
-	"github.com/DATA-DOG/go-sqlmock"
+	"golang.org/x/crypto/bcrypt"
 )
 
 var testCity = "testCity"
@@ -19,25 +18,24 @@ var testPostalCode = "testPostalCode"
 var testState = "testState"
 var testStreet = "testStreet"
 
+var dbToClose *sql.DB
+
+func initShelterManager() *ShelterManager {
+	dbToClose = database.InitDatabase(database.SQLITE3)
+	return &ShelterManager{Datasource: &database.NeighborsDatasource{Database: dbToClose}}
+}
+
 func TestCanReadItsOwnShelterWrite(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+	manager := initShelterManager()
+	defer cleanDatabase()
 	testShelter := generateShelter()
 
-	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 	if err != nil {
 		t.Error(err)
 	}
 	testShelter.ID = id
 
-	expectedRow := []driver.Value{id}
-	expectedRow = append(expectedRow, shelterToRow(testShelter)...)
-	mock.ExpectQuery(getSingleShelterQuery).WithArgs(id).WillReturnRows(sqlmock.NewRows([]string{"ID", "City", "Country", "Name", "PostalCode", "State", "Street"}).AddRow(expectedRow...))
 	actualShelter, err := manager.GetShelter(context.Background(), id)
 	if err != nil {
 		t.Error(err)
@@ -46,28 +44,18 @@ func TestCanReadItsOwnShelterWrite(t *testing.T) {
 	if !reflect.DeepEqual(testShelter, actualShelter) {
 		t.Errorf("Expected %v to equal %v", actualShelter, testShelter)
 	}
-
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestItCanDeleteShelter(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+	manager := initShelterManager()
+	defer cleanDatabase()
 	testShelter := generateShelter()
 
-	mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
-	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 	if err != nil {
 		t.Error(err)
 	}
 
-	mock.ExpectExec(deleteShelterQuery).WithArgs(strconv.FormatInt(id, 10)).WillReturnResult(sqlmock.NewResult(-1, 1))
 	rowsDeleted, err := manager.DeleteShelter(context.Background(), strconv.FormatInt(id, 10))
 	if err != nil {
 		t.Error(err)
@@ -76,40 +64,22 @@ func TestItCanDeleteShelter(t *testing.T) {
 	if rowsDeleted != 1 {
 		t.Error("Expected row to be deleted")
 	}
-	if err = mock.ExpectationsWereMet(); err != nil {
-		t.Error(err)
-	}
 }
 
 func TestItCanGetAllShelters(t *testing.T) {
-	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
-	if err != nil {
-		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
-	}
-	defer db.Close()
+	manager := initShelterManager()
+	defer cleanDatabase()
 	testShelters := make([]*Shelter, 0)
-	expectedRows := make([][]driver.Value, 0)
-	manager := &ShelterManager{Datasource: &database.NeighborsDatasource{Database: db}}
 	for i := 0; i < 5; i++ {
 		testShelter := generateShelter()
 
-		mock.ExpectExec(createShelterQuery).WithArgs(shelterToRow(testShelter)...).WillReturnResult(sqlmock.NewResult(1, 1))
 		id, err := manager.WriteShelter(context.Background(), testShelter, "password")
 		if err != nil {
 			t.Error(err)
 		}
 		testShelter.ID = id
 		testShelters = append(testShelters, testShelter)
-		expectedRow := []driver.Value{id}
-		expectedRow = append(expectedRow, shelterToRow(testShelter)...)
-		expectedRows = append(expectedRows, expectedRow)
 	}
-
-	rowResult := sqlmock.NewRows([]string{"ID", "City", "Country", "Name", "PostalCode", "State", "Street"})
-	for _, expectedRow := range expectedRows {
-		rowResult = rowResult.AddRow(expectedRow...)
-	}
-	mock.ExpectQuery(getAllSheltersQuery).WillReturnRows(rowResult)
 
 	allShelters, err := manager.GetShelters(context.Background())
 	if err != nil {
@@ -121,14 +91,64 @@ func TestItCanGetAllShelters(t *testing.T) {
 			t.Errorf("Expected %v to be in %v \n", shelter, testShelters)
 		}
 	}
+}
 
-	if err = mock.ExpectationsWereMet(); err != nil {
+func TestCanReadItsOwnShelterUpdate(t *testing.T) {
+	manager := initShelterManager()
+	defer cleanDatabase()
+	testShelter := generateShelter()
+
+	id, err := manager.WriteShelter(context.Background(), testShelter, "password")
+	if err != nil {
 		t.Error(err)
+	}
+	testShelter.ID = id
+
+	createdShelter, err := manager.GetShelter(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(testShelter, createdShelter) {
+		t.Errorf("Expected %v to equal %v", createdShelter, testShelter)
+	}
+
+	createdShelter.PostalCode = "02139"
+	err = manager.UpdateShelter(context.Background(), createdShelter)
+	if err != nil {
+		t.Error(err)
+	}
+
+	finalShelter, err := manager.GetShelter(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(finalShelter, createdShelter) {
+		t.Errorf("Expected %v to equal %v", finalShelter, createdShelter)
 	}
 }
 
-func shelterToRow(shelter *Shelter) []driver.Value {
-	return []driver.Value{shelter.City, shelter.Country, shelter.Name, shelter.PostalCode, shelter.State, shelter.Street}
+func TestItGetsPasswordForUsername(t *testing.T) {
+	manager := initShelterManager()
+	defer cleanDatabase()
+	testShelter := generateShelter()
+	unhashedPassword := "password"
+
+	id, err := manager.WriteShelter(context.Background(), testShelter, unhashedPassword)
+	if err != nil {
+		t.Error(err)
+	}
+	testShelter.ID = id
+
+	createdShelter, err := manager.GetPasswordForUsername(context.Background(), testShelter.Name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if bcrypt.CompareHashAndPassword([]byte(createdShelter.Password), []byte(unhashedPassword)) != nil {
+		t.Errorf("Expected %v to equal %v", []byte(createdShelter.Password), []byte(unhashedPassword))
+	}
 }
 
 func generateShelter() *Shelter {
