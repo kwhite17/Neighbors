@@ -14,13 +14,14 @@ import (
 var NeighborsDatabase database.NeighborsDatasource
 
 func main() {
+	driver := flag.String("dbDriver", "sqlite3", "Name of database driver to use")
 	dbHost := flag.String("dbhost", "file::memory:?mode=memory&cache=shared", "Name of host on which to run Neighbors")
 	developmentMode := flag.Bool("developmentMode", false, "run app in development mode")
 	flag.Parse()
 	log.Println("Connecting to host", *dbHost)
 	log.Println("Development mode set to:", *developmentMode)
 
-	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(*dbHost, *developmentMode)}
+	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(database.BuildConfig(*driver, *dbHost, *developmentMode))}
 	shelterManager := &managers.ShelterManager{Datasource: NeighborsDatabase}
 	itemManager := &managers.ItemManager{Datasource: NeighborsDatabase}
 	shelterSessionManager := &managers.ShelterSessionManager{Datasource: NeighborsDatabase}
