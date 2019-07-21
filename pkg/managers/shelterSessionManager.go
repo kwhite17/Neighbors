@@ -14,7 +14,7 @@ import (
 
 var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?)"
 var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=?"
-var getShelterSessionQuery = "SELECT SessionKey, ShelterID, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
+var getShelterSessionQuery = "SELECT SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
 var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
 
 type ShelterSessionManager struct {
@@ -34,18 +34,19 @@ func (sm *ShelterSessionManager) GetShelterSession(ctx context.Context, sessionK
 	row := sm.Datasource.ExecuteSingleReadQuery(ctx, getShelterSessionQuery, []interface{}{sessionKey})
 	var key string
 	var shelterID int64
+	var shelterName string
 	var loginTime int64
 	var lastSeenTime int64
-	if err := row.Scan(&key, &shelterID, &loginTime, &lastSeenTime); err != nil {
+	if err := row.Scan(&key, &shelterID, &shelterName, &loginTime, &lastSeenTime); err != nil {
 		return nil, err
 	}
-	return &ShelterSession{SessionKey: key, ShelterID: shelterID, LoginTime: loginTime, LastSeenTime: lastSeenTime}, nil
+	return &ShelterSession{SessionKey: key, ShelterID: shelterID, ShelterName: shelterName, LoginTime: loginTime, LastSeenTime: lastSeenTime}, nil
 }
 
-func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelterID int64, username string) (string, error) {
+func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelterID int64, shelterName string) (string, error) {
 	cookieID := strconv.FormatInt(shelterID, 10) + "-" + uuid.New().String()
 	currentTime := time.Now().Unix()
-	values := []interface{}{cookieID, shelterID, username, currentTime, currentTime}
+	values := []interface{}{cookieID, shelterID, shelterName, currentTime, currentTime}
 	_, err := sm.WriteEntity(ctx, values)
 	if err != nil {
 		return "", err

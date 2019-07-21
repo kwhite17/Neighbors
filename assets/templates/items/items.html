@@ -9,7 +9,14 @@
 </head>
 
 <body>
-    <button onclick="logout()">Log Out</button>
+    <div>
+        {{if .ShelterSession}}
+        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button onclick="logout()">Log Out</button>
+        {{else}}
+        <button><a href="/session/login">Login</a></button>
+        {{end}}
+    </div>
     <h1>All Item Requests</h1>
     <table>
         <thead>
@@ -30,7 +37,7 @@
             </th>
         </thead>
         <tbody>
-            {{range $index, $element := . }}
+            {{range $index, $element := .Items }}
             <td>{{ $element.Category }}</td>
             <td>{{ $element.Gender }}</td>
             <td>{{ $element.Size }}</td>
