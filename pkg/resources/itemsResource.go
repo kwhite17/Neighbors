@@ -185,7 +185,7 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 			return false, nil
 		}
 
-		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
+		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
 		if err != nil {
 			log.Println(err)
 			return false, nil
