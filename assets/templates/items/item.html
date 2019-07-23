@@ -5,38 +5,34 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Item Description</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .ShelterSession}}
-        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
-    </div>
+    </nav>
     <input type="hidden" id="associatedShelter" value="{{.Item.ShelterID}}" />
-    <h2>Item Request</h2>
-    <strong>Category:</strong>
-    {{.Item.Category}}
-    <br>
-    <strong>Gender:</strong>
-    {{.Item.Gender}}
-    <br>
-    <strong>Size:</strong>
-    {{.Item.Size}}
-    <br>
-    <strong>Quantity:</strong>
-    {{.Item.Quantity}}
-    <br>
-    <strong>Status:</strong>
-    {{.Item.Status}}
-    <br>
-    <button><a href="/shelters/{{.Item.ShelterID}}">View Shelter</a></button>
-    <button><a href="./{{.Item.ID}}/edit">Edit</a></button>
-    <button onclick="deleteItem()">Delete</button>
+    <div class="card">
+        <div class="card-header">Item Detail</div>
+        <div class="card-body">
+            <h5 class="card-title">{{.Item.Category}}</h5>
+            <p class="card-text">Quantity: {{.Item.Quantity}}</p>
+            <p class="card-text">Gender: {{.Item.Gender}}</p>
+            <p class="card-text">Size: {{.Item.Size}}</p>
+            <p class="card-text">Status: {{.Item.Status}}</p>
+            <a href="./{{.Item.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+            <a href="/shelters/{{.Item.ShelterID}}" role="button" class="btn btn-secondary card-link">View Shelter</a>
+            <button onclick="deleteItem()" class="btn btn-danger card-link">Delete</button>
+        </div>
+    </div>
 </body>
 <script>
     var logout = function () {

@@ -6,20 +6,23 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Neighbors: All Shelters</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .ShelterSession}}
-        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
-    </div>
+    </nav>
     <h1>All Shelters</h1>
-    <table>
-        <thead>
+    <table class="table table-striped">
+        <thead class="thead-dark">
             <th>
                 Shelter Name
             </th>
@@ -33,7 +36,7 @@
                 <td>{{ $element.Name }}</td>
                 <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.Country }},
                     {{ $element.PostalCode }}</td>
-                <td><a href="./{{ $element.ID }}">View</a></td>
+                <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
             </tr>
             {{end}}
         </tbody>

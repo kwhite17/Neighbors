@@ -6,48 +6,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Edit Item</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .ShelterSession}}
-        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
-    </div>
+    </nav>
     <h1>Update Item Request</h1>
     <form id="editForm">
         <input type="hidden" name="id" value={{.Item.ID}}>
         <input type="hidden" name="shelterId" value={{.Item.ShelterID}}>
-        Category
-        <br>
-        <input type="text" name="category" value={{.Item.Category}}>
-        <br><br>
-        Gender
-        <br>
-        <div>
-            <input type="radio" name="gender" value="male">
-            Male
-            <br>
-            <input type="radio" name="gender" value="female">
-            Female
+        <div class="form-group">
+            <label for="itemCategory">Category</label>
+            <input type="text" class="form-control" name="category" value={{.Item.Category}} id="itemCategory">
         </div>
-        <br><br>
-        Quantity
-        <br>
-        <input type="text" name="quantity" value={{.Item.Quantity}}>
-        <br><br>
-        Size
-        <br>
-        <input type="text" name="size" value={{.Item.Size}}>
-        <br><br>
-        Status
-        <br>
-        <input type="text" name="status" value={{.Item.Status}}>
-        <br><br>
-        <button type="button" onclick="updateItem()">Update Item</button>
+        <div class="form-check">
+            <input type="radio" class="form-check-input" name="gender" value="male" id="itemGenderMale">
+            <label for="itemGenderMale" class="form-check-label">Male</label>
+        </div>
+        <div class="form-check">
+            <input type="radio" class="form-check-input" name="gender" value="female" id="itemGenderFemale">
+            <label for="itemGenderFemale" class="form-check-label">Female</label>
+        </div>
+        <div class="form-check">
+            <input type="radio" class="form-check-input" name="gender" value="unisex" id="itemGenderUnisex">
+            <label for="itemGenderUnisex" class="form-check-label">Unisex</label>
+        </div>
+        <div class="form-group">
+            <label for="itemQuantity">Quantity</label>
+            <input type="number" class="form-control" name="quantity" value={{.Item.Quantity}} id="itemQuantity">
+        </div>
+        <div class="form-group">
+            <label for="itemSize">Size</label>
+            <input type="text" class="form-control" name="size" value={{.Item.Size}} id="itemSize">
+        </div>
+        <div class="form-group">
+            <label for="itemStatus">Status</label>
+            <input type="text" class="form-control" name="status" value={{.Item.Status}} id="itemStatus">
+        </div>
+        <button type="button" class="btn btn-primary" onclick="updateItem()">Update Item</button>
     </form>
 </body>
 <script>
