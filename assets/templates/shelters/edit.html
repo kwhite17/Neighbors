@@ -6,46 +6,48 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Neighbors: Shelter Registration</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
-
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .ShelterSession}}
-        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
-    </div>
+    </nav>
     <h1>Update Shelter</h1>
     <form id="editForm">
         <input type="hidden" name="id" value={{.Shetler.ID}}>
-        Shelter Name
-        <br>
-        <input type="text" name="name" value={{.Shelter.Name}}>
-        <br><br>
-        Street
-        <br>
-        <input type="text" name="street" value={{.Shelter.Street}}>
-        <br><br>
-        City
-        <br>
-        <input type="text" name="city" value={{.Shelter.City}}>
-        <br><br>
-        State
-        <br>
-        <input type="text" name="state" value={{.Shelter.State}}>
-        <br><br>
-        Postal Code
-        <br>
-        <input type="text" name="postalCode" value={{.Shelter.PostalCode}}>
-        <br><br>
-        Country
-        <br>
-        <input type="text" name="country" value={{.Shelter.Country}}>
-        <br><br>
-        <button type="button" onclick="updateShelter()">Update Shelter</button>
+        <div class="form-group">
+            <label for="shelterName">Shelter Name</label>
+            <input type="text" class="form-control" name="name" value={{.Shelter.Name}} id="shelterName">
+        </div>
+        <div class="form-group">
+            <label for="shelterStreet">Street Address</label>
+            <input type="text" class="form-control" name="street" value={{.Shelter.Street}} id="shelterStreet">
+        </div>
+        <div class="form-group">
+            <label for="shelterCity">City</label>
+            <input type="text" class="form-control" name="city" value={{.Shelter.City}} id="shelterCity">
+        </div>
+        <div class="form-group">
+            <label for="shelterState">State</label>
+            <input type="text" class="form-control" name="state" value={{.Shelter.State}} id="shelterState">
+        </div>
+        <div class="form-group">
+            <label for="shelterZip">Postal Code</label>
+            <input type="text" class="form-control" name="postalCode" id="shelterZip" value={{.Shelter.PostalCode}}>
+        </div>
+        <div class="form-group">
+            <label for="shelterCountry">Country</label>
+            <input type="text" class="form-control" name="country" value={{.Shelter.Country}} id="shelterCountry">
+        </div>
+        <button type="button" class="btn btn-primary" onclick="updateShelter()">Update Shelter</button>
     </form>
 </body>
 <script>

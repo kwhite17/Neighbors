@@ -6,31 +6,38 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Neighbors: Shelter Info</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .ShelterSession}}
-        <span>Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
+    </nav>
+    <div class="card">
+        <div class="card-header">
+            Shelter Info
+        </div>
+        <div class="card-body">
+            <h5 class="card-title">{{.Shelter.Name}}</h5>
+            <h6 class="card-subtitle text-muted">{{.Shelter.Street}}, {{.Shelter.City}}, {{.Shelter.State}},
+                {{.Shelter.Country}}, {{.Shelter.PostalCode}}</h6>
+            <br>
+            <a href="./{{.Shelter.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+            <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
+        </div>
+        <div class="card-footer text-muted">
+            <a href="/shelters/" class="card-link">View All Shelters</a>
+        </div>
     </div>
-    <h2>Shelter Info</h2>
-    <strong>ID:</strong>
-    {{.Shelter.ID}}
-    <br>
-    <strong>Shelter Name:</strong>
-    {{.Shelter.Name}}
-    <br>
-    <strong>Address:</strong>
-    {{.Shelter.Street}}, {{.Shelter.City}}, {{.Shelter.State}}, {{.Shelter.Country}}, {{.Shelter.PostalCode}}
-    <br>
-    <button><a href="./{{.Shelter.ID}}/edit">Edit</a></button>
-    <button onclick="deleteShelter()">Delete</button>
-    <table>
-        <thead>
+    <table class="table table-striped">
+        <thead class="thead-dark">
             <th>
                 Category
             </th>
@@ -46,6 +53,9 @@
             <th>
                 Status
             </th>
+            <th>
+                <a class="btn btn-small btn-outline-primary" role="button" href="/items/new">New Item</a>
+            </th>
         </thead>
         <tbody>
             {{range $index, $element := .Items }}
@@ -54,7 +64,7 @@
             <td>{{ $element.Size }}</td>
             <td>{{ $element.Quantity }}</td>
             <td>{{ $element.Status }}</td>
-            <td><button onclick="e => viewItem(e)" id="{{ $element.ID }}">View</button></td>
+            <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
             {{end}}
         </tbody>
     </table>
@@ -76,12 +86,6 @@
         }
         req.send();
     }
-
-    var viewItem = function (e) {
-        e.preventDefault();
-        var itemId = e.target.id;
-        window.location = window.location + '/items/' + itemId;
-    };
 
     var editShelter = function () {
         window.location = window.location + '/edit';

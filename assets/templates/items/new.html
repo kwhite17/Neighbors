@@ -6,45 +6,58 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Create Item</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
+        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
-    <div>
+    <nav class="navbar navbar-dark bg-dark">
+        <a class="navbar-brand" href="/">Neighbors</a>
         {{if .}}
-        <span>Welcome, {{.ShelterName}}</span>
-        <button onclick="logout()">Log Out</button>
+        <span class="navbar-text">Welcome, {{.ShelterName}}</span>
+        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
         {{else}}
-        <button><a href="/session/login">Login</a></button>
+        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
         {{end}}
-    </div>
+    </nav>
     <h1>Item Creation Form</h1>
 
     <form id="createForm">
-        Category
-        <br>
-        <input type="text" name="category">
-        <br><br>
-        Gender
-        <br>
-        <div>
-            <input type="radio" name="gender" value="male">
-            Male
-            <br>
-            <input type="radio" name="gender" value="female">
-            Female
+        <div class="form-group">
+            <label for="itemCategory">Category</label>
+            <select id="itemCategory" class="form-control" name="category">
+                <option value="SOCKS">Socks</option>
+                <option value="UNDERWEAR">Underwear</option>
+                <option value="BLANKETS">Blankets</option>
+            </select>
         </div>
-        <br>
-        Size
-        <br>
-        <input type="text" name="size">
-        <br> <br>
-        Quantity
-        <br>
-        <input type="text" name="quantity">
-        <br><br>
-        <button type="button" onclick="createItem()">Create Item</button>
+        <fieldset class="form-group">
+            <legend>Gender</legend>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderFemale" value="FEMALE">
+                <label class="form-check-label" for="itemGenderFemale">Female</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderMale" value="MALE">
+                <label class="form-check-label" for="itemGenderMale">Male</label>
+            </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderUnisex" value="UNISEX">
+                <label class="form-check-label" for="itemGenderUnisex">Unisex</label>
+            </div>
+        </fieldset>
+        <div class="form-group">
+            <label for="itemSize">Size</label>
+            <input type="text" class="form-control" name="size" placeholder="Item Size" id="itemSize">
+        </div>
+        <div class="form-group">
+            <label for="itemQuantity">Quantity</label>
+            <input type="number" class="form-control" name="quantity" placeholder="Item Quantity" id="itemQuantity">
+        </div>
+        <button type="button" onclick="createItem()" class="btn btn-primary">Create Item</button>
     </form>
 </body>
+
 <script>
     var logout = function () {
         var req = new XMLHttpRequest();
