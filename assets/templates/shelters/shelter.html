@@ -32,6 +32,9 @@
             <a href="./{{.Shelter.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
             <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
         </div>
+        <div class="card-footer text-muted">
+            <a href="/shelters/" class="card-link">View All Shelters</a>
+        </div>
     </div>
     <table class="table table-striped">
         <thead class="thead-dark">
@@ -49,6 +52,9 @@
             </th>
             <th>
                 Status
+            </th>
+            <th>
+                <a class="btn btn-small btn-outline-primary" role="button" href="/items/new">New Item</a>
             </th>
         </thead>
         <tbody>
