@@ -26,31 +26,39 @@
         <input type="hidden" name="shelterId" value={{.Item.ShelterID}}>
         <div class="form-group">
             <label for="itemCategory">Category</label>
-            <input type="text" class="form-control" name="category" value={{.Item.Category}} id="itemCategory">
+            <select id="itemCategory" class="form-control" name="category">
+                <option value="SOCKS">Socks</option>
+                <option value="UNDERWEAR">Underwear</option>
+                <option value="BLANKETS">Blankets</option>
+            </select>
         </div>
         <div class="form-check">
-            <input type="radio" class="form-check-input" name="gender" value="male" id="itemGenderMale">
-            <label for="itemGenderMale" class="form-check-label">Male</label>
-        </div>
-        <div class="form-check">
-            <input type="radio" class="form-check-input" name="gender" value="female" id="itemGenderFemale">
+            <input type="radio" class="form-check-input" name="gender" value="FEMALE" id="itemGenderFemale">
             <label for="itemGenderFemale" class="form-check-label">Female</label>
         </div>
         <div class="form-check">
-            <input type="radio" class="form-check-input" name="gender" value="unisex" id="itemGenderUnisex">
-            <label for="itemGenderUnisex" class="form-check-label">Unisex</label>
+            <input type="radio" class="form-check-input" name="gender" value="MALE" id="itemGenderMale">
+            <label for="itemGenderMale" class="form-check-label">Male</label>
         </div>
-        <div class="form-group">
-            <label for="itemQuantity">Quantity</label>
-            <input type="number" class="form-control" name="quantity" value={{.Item.Quantity}} id="itemQuantity">
+        <div class="form-check">
+            <input type="radio" class="form-check-input" name="gender" value="UNISEX" id="itemGenderUnisex">
+            <label for=" itemGenderUnisex" class="form-check-label">Unisex</label>
         </div>
         <div class="form-group">
             <label for="itemSize">Size</label>
             <input type="text" class="form-control" name="size" value={{.Item.Size}} id="itemSize">
         </div>
         <div class="form-group">
+            <label for="itemQuantity">Quantity</label>
+            <input type="number" class="form-control" name="quantity" value={{.Item.Quantity}} id="itemQuantity">
+        </div>
+        <div class="form-group">
             <label for="itemStatus">Status</label>
-            <input type="text" class="form-control" name="status" value={{.Item.Status}} id="itemStatus">
+            <select id="itemStatus" class="form-control" name="status">
+                <option value="OPEN">Open</option>
+                <option value="CLAIMED">Claimed</option>
+                <option value="DELIVERED">Delivered</option>
+            </select>
         </div>
         <button type="button" class="btn btn-primary" onclick="updateItem()">Update Item</button>
     </form>

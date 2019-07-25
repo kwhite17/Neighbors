@@ -25,20 +25,24 @@
     <form id="createForm">
         <div class="form-group">
             <label for="itemCategory">Category</label>
-            <input type="text" class="form-control" name="category" placeholder="Item Category" id="itemCategory">
+            <select id="itemCategory" class="form-control" name="category">
+                <option value="SOCKS">Socks</option>
+                <option value="UNDERWEAR">Underwear</option>
+                <option value="BLANKETS">Blankets</option>
+            </select>
         </div>
         <fieldset class="form-group">
             <legend>Gender</legend>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="gender" id="itemGenderFemale" value="female">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderFemale" value="FEMALE">
                 <label class="form-check-label" for="itemGenderFemale">Female</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="gender" id="itemGenderMale" value="male">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderMale" value="MALE">
                 <label class="form-check-label" for="itemGenderMale">Male</label>
             </div>
             <div class="form-check">
-                <input class="form-check-input" type="radio" name="gender" id="itemGenderUnisex" value="unisex">
+                <input class="form-check-input" type="radio" name="gender" id="itemGenderUnisex" value="UNISEX">
                 <label class="form-check-label" for="itemGenderUnisex">Unisex</label>
             </div>
         </fieldset>
@@ -48,7 +52,7 @@
         </div>
         <div class="form-group">
             <label for="itemQuantity">Quantity</label>
-            <input type="text" class="form-control" name="quantity" placeholder="Item Quantity" id="itemQuantity">
+            <input type="number" class="form-control" name="quantity" placeholder="Item Quantity" id="itemQuantity">
         </div>
         <button type="button" onclick="createItem()" class="btn btn-primary">Create Item</button>
     </form>
