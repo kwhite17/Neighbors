@@ -28,7 +28,11 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/")
+	tplMap := map[string]interface{}{
+		"ShelterSession": shelterSession,
+	}
+
+	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
 		t, err := handler.ShelterRetriever.RetrieveCreateEntityTemplate()
@@ -37,7 +41,11 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		t.Execute(w, nil)
+		err = t.Execute(w, tplMap)
+
+		if err != nil {
+			log.Println(err)
+		}
 	case "edit":
 		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
 		if err != nil {
@@ -60,10 +68,8 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			return
 		}
 
-		responseObject := make(map[string]interface{}, 0)
-		responseObject["Shelter"] = shelter
-		responseObject["ShelterSession"] = shelterSession
-		t.Execute(w, responseObject)
+		tplMap["Shelter"] = shelter
+		t.Execute(w, tplMap)
 	default:
 		handler.requestMethodHandler(w, r, shelterSession)
 	}

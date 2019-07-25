@@ -14,17 +14,17 @@ type ShelterRetriever struct {
 }
 
 func (sr ShelterRetriever) RetrieveCreateEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(createShelterTemplatePath)
+	return RetrieveMultiTemplate("home/layout", createShelterTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(getShelterTemplatePath)
+	return RetrieveMultiTemplate("home/layout", getShelterTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {
-	return RetrieveTemplate(getSheltersTemplatePath)
+	return RetrieveMultiTemplate("home/layout", getSheltersTemplatePath)
 }
 
 func (sr ShelterRetriever) RetrieveEditEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(updateSheltersTemplatePath)
+	return RetrieveMultiTemplate("home/layout", updateSheltersTemplatePath)
 }

@@ -1,24 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-</head>
-
-<body>
-    <nav class="navbar navbar-dark bg-dark">
-        <a class="navbar-brand" href="/">Neighbors</a>
-        {{if .ShelterSession}}
-        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
-        {{else}}
-        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
-        {{end}}
-    </nav>
+{{define "main-content"}}
     <input type="hidden" id="associatedShelter" value="{{.Item.ShelterID}}" />
     <div class="card">
         <div class="card-header">Item Detail</div>
@@ -36,42 +16,27 @@
             <a href="/items/" class="card-link">View All Items</a>
         </div>
     </div>
-</body>
-<script>
-    var logout = function () {
-        var req = new XMLHttpRequest();
-        var homePage = window.location.origin;
+{{end}}
 
-        req.open("DELETE", homePage + '/session/logout');
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = homePage;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to log out!");
-                return false;
-            }
+{{define "script-content"}}
+    <script type="text/javascript">
+        var viewShelter = function () {
+            var shelterId = doucment.getElementById('associatedShelter').value;
+            window.location = window.location + '/shelters/' + shelterId;
+        };
+
+        var deleteItem = function () {
+            var req = new XMLHttpRequest();
+            req.open("DELETE", window.location)
+            req.onreadystatechange = function () {
+                if (req.readyState === 4 && req.status === 204) {
+                    window.location = window.location.origin + '/items';
+                } else if (req.readyState === 4 && req.status !== 204) {
+                    alert("Failed to delete item!");
+                }
+            };
+
+            req.send()
         }
-        req.send();
-    }
-
-    var viewShelter = function () {
-        var shelterId = doucment.getElementById('associatedShelter').value;
-        window.location = window.location + '/shelters/' + shelterId;
-    };
-
-    var deleteItem = function () {
-        var req = new XMLHttpRequest();
-        req.open("DELETE", window.location)
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = window.location.origin + '/items';
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to delete item!");
-            }
-        }
-        req.send()
-    }
-</script>
-
-</html>
+    </script>
+{{end}}

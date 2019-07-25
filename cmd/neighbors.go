@@ -30,17 +30,15 @@ func main() {
 	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager, itemManager))
 	mux.Handle("/items/", buildItemServiceHandler(shelterSessionManager))
 	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
-	mux.HandleFunc("/", loadHomePage)
+	mux.Handle("/", buildHomeServiceHandler(shelterSessionManager))
+	//mux.HandleFunc("/", loadHomePage)
 	http.ListenAndServe(":8080", mux)
 }
 
-func loadHomePage(w http.ResponseWriter, r *http.Request) {
-	t, err := retrievers.RetrieveTemplate("home/index")
-	if err != nil {
-		log.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+func buildHomeServiceHandler(shelterSessionManager *managers.ShelterSessionManager) resources.HomeServiceHandler {
+	return resources.HomeServiceHandler{
+		ShelterSessionManager: shelterSessionManager,
 	}
-	t.Execute(w, nil)
 }
 
 func buildShelterServiceHandler(shelterManager *managers.ShelterManager, shelterSessionManager *managers.ShelterSessionManager, itemManager *managers.ItemManager) resources.ShelterServiceHandler {

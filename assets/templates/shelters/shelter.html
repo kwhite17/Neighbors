@@ -1,25 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Neighbors: Shelter Info</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-</head>
-
-<body>
-    <nav class="navbar navbar-dark bg-dark">
-        <a class="navbar-brand" href="/">Neighbors</a>
-        {{if .ShelterSession}}
-        <span class="navbar-text">Welcome, {{.ShelterSession.ShelterName}}</span>
-        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
-        {{else}}
-        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
-        {{end}}
-    </nav>
+{{define "main-content"}}
     <div class="card">
         <div class="card-header">
             Shelter Info
@@ -59,50 +38,35 @@
         </thead>
         <tbody>
             {{range $index, $element := .Items }}
-            <td>{{ $element.Category }}</td>
-            <td>{{ $element.Gender }}</td>
-            <td>{{ $element.Size }}</td>
-            <td>{{ $element.Quantity }}</td>
-            <td>{{ $element.Status }}</td>
-            <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
+                <td>{{ $element.Category }}</td>
+                <td>{{ $element.Gender }}</td>
+                <td>{{ $element.Size }}</td>
+                <td>{{ $element.Quantity }}</td>
+                <td>{{ $element.Status }}</td>
+                <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
             {{end}}
         </tbody>
     </table>
-</body>
-<script>
-    var logout = function () {
-        var req = new XMLHttpRequest();
-        var homePage = window.location.origin;
+{{end}}
 
-        req.open("DELETE", homePage + '/session/logout');
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = homePage;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to log out!");
-                return false;
-            }
-        }
-        req.send();
-    }
+{{define "script-content"}}
+    <script type="text/javascript">
+        var editShelter = function () {
+            window.location = window.location + '/edit';
+        };
 
-    var editShelter = function () {
-        window.location = window.location + '/edit';
-    };
+        var deleteShelter = function () {
+            var req = new XMLHttpRequest();
+            req.open("DELETE", window.location)
+            req.onreadystatechange = function () {
+                if (req.readyState === 4 && req.status === 204) {
+                    window.location = window.location.origin + '/shelters';
+                } else if (req.readyState === 4 && req.status !== 204) {
+                    alert("Failed to delete shelter!");
+                }
+            };
 
-    var deleteShelter = function () {
-        var req = new XMLHttpRequest();
-        req.open("DELETE", window.location)
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = window.location.origin + '/shelters';
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to delete shelter!");
-            }
-        }
-        req.send()
-    };
-</script>
-
-</html>
+            req.send()
+        };
+    </script>
+{{end}}

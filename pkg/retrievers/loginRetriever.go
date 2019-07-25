@@ -16,7 +16,7 @@ func (lr LoginRetriever) RetrieveCreateEntityTemplate() (*template.Template, err
 }
 
 func (lr LoginRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(loginTemplatePath)
+	return RetrieveMultiTemplate("home/layout", loginTemplatePath)
 }
 
 func (lr LoginRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {

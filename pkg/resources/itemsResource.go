@@ -28,6 +28,10 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	tplMap := map[string]interface{}{
+		"ShelterSession": shelterSession,
+	}
+
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
@@ -37,9 +41,10 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		t.Execute(w, shelterSession)
+		t.Execute(w, tplMap)
 	case "edit":
 		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
+
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -47,6 +52,7 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		}
 
 		item, err := handler.ItemManager.GetItem(r.Context(), itemID)
+
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -54,15 +60,15 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		}
 
 		t, err := handler.ItemRetriever.RetrieveEditEntityTemplate()
+
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
-		responseObject := make(map[string]interface{}, 0)
-		responseObject["Item"] = item
-		responseObject["ShelterSession"] = shelterSession
-		t.Execute(w, responseObject)
+
+		tplMap["Item"] = item
+		t.Execute(w, tplMap)
 	default:
 		handler.requestMethodHandler(w, r, shelterSession)
 	}
