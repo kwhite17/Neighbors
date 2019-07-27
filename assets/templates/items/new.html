@@ -1,25 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Create Item</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-</head>
-
-<body>
-    <nav class="navbar navbar-dark bg-dark">
-        <a class="navbar-brand" href="/">Neighbors</a>
-        {{if .}}
-        <span class="navbar-text">Welcome, {{.ShelterName}}</span>
-        <button class="btn btn-small btn-outline-primary" onclick="logout()">Log Out</button>
-        {{else}}
-        <a class="btn btn-small btn-outline-primary" role="button" href="/session/login">Login</a>
-        {{end}}
-    </nav>
+{{define "main-content"}}
     <h1>Item Creation Form</h1>
 
     <form id="createForm">
@@ -56,51 +35,36 @@
         </div>
         <button type="button" onclick="createItem()" class="btn btn-primary">Create Item</button>
     </form>
-</body>
+{{end}}
 
-<script>
-    var logout = function () {
-        var req = new XMLHttpRequest();
-        var homePage = window.location.origin;
+{{define "script-content"}}
+    <script type="text/javascript">
+        var createItem = function () {
+            var req = new XMLHttpRequest();
+            var formElements = document.getElementById('createForm').elements;
+            var elementUpdate = {
+                Category: formElements.namedItem('category').value,
+                Gender: formElements.namedItem('gender').value,
+                Quantity: Number(formElements.namedItem('quantity').value),
+                Size: formElements.namedItem('size').value,
+                Status: "OPEN",
+            };
 
-        req.open("DELETE", homePage + '/session/logout');
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = homePage;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to log out!");
-                return false;
-            }
+            req.open("POST", window.location.origin + '/items/');
+            req.onreadystatechange = function () {
+                if (req.readyState === 4 && req.status === 200) {
+                    var response = JSON.parse(req.response);
+                    window.location = window.location.origin + '/items/' + response.ID;
+                    return false;
+                } else if (req.readyState === 4 && req.status !== 200) {
+                    alert("Failed to create item!");
+                    return false;
+                }
+            };
+
+            req.send(JSON.stringify(elementUpdate));
+
+            return false;
         }
-        req.send();
-    }
-
-    var createItem = function () {
-        var req = new XMLHttpRequest();
-        var formElements = document.getElementById('createForm').elements;
-        var elementUpdate = {
-            Category: formElements.namedItem('category').value,
-            Gender: formElements.namedItem('gender').value,
-            Quantity: Number(formElements.namedItem('quantity').value),
-            Size: formElements.namedItem('size').value,
-            Status: "OPEN",
-        };
-
-        req.open("POST", window.location.origin + '/items/');
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 200) {
-                var response = JSON.parse(req.response);
-                window.location = window.location.origin + '/items/' + response.ID;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 200) {
-                alert("Failed to create item!");
-                return false;
-            }
-        };
-        req.send(JSON.stringify(elementUpdate));
-        return false;
-    }
-</script>
-
-</html>
+    </script>
+{{end}}

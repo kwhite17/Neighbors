@@ -8,23 +8,24 @@ var createItemTemplatePath = "items/new"
 var getItemTemplatePath = "items/item"
 var getItemsTemplatePath = "items/items"
 var updateItemsTemplatePath = "items/edit"
+var layoutTemplatePath = "home/layout"
 
 type ItemRetriever struct {
 	TemplateRetriever
 }
 
 func (ir ItemRetriever) RetrieveCreateEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(createItemTemplatePath)
+	return RetrieveMultiTemplate(layoutTemplatePath, createItemTemplatePath)
 }
 
 func (ir ItemRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(getItemTemplatePath)
+	return RetrieveMultiTemplate(layoutTemplatePath, getItemTemplatePath)
 }
 
 func (ir ItemRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {
-	return RetrieveTemplate(getItemsTemplatePath)
+	return RetrieveMultiTemplate(layoutTemplatePath, getItemsTemplatePath)
 }
 
 func (ir ItemRetriever) RetrieveEditEntityTemplate() (*template.Template, error) {
-	return RetrieveTemplate(updateItemsTemplatePath)
+	return RetrieveMultiTemplate(layoutTemplatePath, updateItemsTemplatePath)
 }

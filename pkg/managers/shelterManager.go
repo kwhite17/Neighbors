@@ -37,13 +37,21 @@ type Shelter struct {
 
 func (sm *ShelterManager) GetShelter(ctx context.Context, id interface{}) (*Shelter, error) {
 	result, err := sm.ReadEntity(ctx, id)
+
 	if err != nil {
 		return nil, err
 	}
+
 	shelter, err := sm.buildShelters(result)
+
 	if err != nil {
 		return nil, err
 	}
+
+	if len(shelter) < 1 {
+		return nil, nil
+	}
+
 	return shelter[0], nil
 }
 

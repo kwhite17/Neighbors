@@ -1,18 +1,5 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Neighbors: Shelter Registration</title>
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
-        integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-</head>
-
-<h1>Shelter Registration</h1>
-
-<body>
+{{define "main-content"}}
+    <h1>Shelter Registration</h1>
     <form id="createForm">
         <div class="form-group">
             <label for="shelterName">Shelter Name</label>
@@ -44,36 +31,39 @@
         </div>
         <button type="button" class="btn btn-primary" onclick="createShelter()">Register Shelter</button>
     </form>
-</body>
-<script>
-    var createShelter = function () {
-        var req = new XMLHttpRequest();
-        req.withCredentials = true;
-        var formElements = document.getElementById('createForm').elements;
-        var elementUpdate = {
-            Name: formElements.namedItem('name').value,
-            Password: formElements.namedItem('password').value,
-            Street: formElements.namedItem('street').value,
-            City: formElements.namedItem('city').value,
-            State: formElements.namedItem('state').value,
-            PostalCode: formElements.namedItem('postalCode').value,
-            Country: formElements.namedItem('country').value,
-        };
+{{end}}
 
-        req.open("POST", window.location.origin + '/shelters/');
-        req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 200) {
-                var response = JSON.parse(req.response);
-                window.location = window.location.origin + '/shelters/' + response.ID;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 200) {
-                alert("Failed to update shelter!");
-                return false;
-            }
-        };
-        req.send(JSON.stringify(elementUpdate));
-        return false;
-    }
-</script>
+{{define "script-content"}}
+    <script type="text/javascript">
+        var createShelter = function () {
+            var req = new XMLHttpRequest();
+            req.withCredentials = true;
+            var formElements = document.getElementById('createForm').elements;
+            var elementUpdate = {
+                Name: formElements.namedItem('name').value,
+                Password: formElements.namedItem('password').value,
+                Street: formElements.namedItem('street').value,
+                City: formElements.namedItem('city').value,
+                State: formElements.namedItem('state').value,
+                PostalCode: formElements.namedItem('postalCode').value,
+                Country: formElements.namedItem('country').value,
+            };
 
-</html>
+            req.open("POST", window.location.origin + '/shelters/');
+            req.onreadystatechange = function () {
+                if (req.readyState === 4 && req.status === 200) {
+                    var response = JSON.parse(req.response);
+                    window.location = window.location.origin + '/shelters/' + response.ID;
+                    return false;
+                } else if (req.readyState === 4 && req.status !== 200) {
+                    alert("Failed to update shelter!");
+                    return false;
+                }
+            };
+
+            req.send(JSON.stringify(elementUpdate));
+
+            return false;
+        };
+    </script>
+{{end}}
