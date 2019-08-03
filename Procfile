@@ -1,0 +1,1 @@
+web: make compile && ./neighbors
