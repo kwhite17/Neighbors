@@ -1,1 +1,1 @@
-web: make compile && ./neighbors
+web: neighbors -developmentMode
