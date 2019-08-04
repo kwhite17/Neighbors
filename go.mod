@@ -1,4 +1,3 @@
-// +heroku install ./pkg/...
 module github.com/kwhite17/Neighbors
 
 go 1.12
