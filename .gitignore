@@ -2,3 +2,4 @@
 vendor
 .vscode
 *.exe
+./neighbors
