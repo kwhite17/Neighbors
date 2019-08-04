@@ -1,1 +1,1 @@
-web: neighbors -developmentMode
+web: cmd -developmentMode
