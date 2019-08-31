@@ -1,5 +1,5 @@
 .idea
 vendor
 .vscode
-*/**/assets.go
-neighbors.exe
+*.exe
+neighbors

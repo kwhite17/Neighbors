@@ -4,6 +4,7 @@ import (
 	"flag"
 	"log"
 	"net/http"
+	"os"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 	"github.com/kwhite17/Neighbors/pkg/managers"
@@ -17,6 +18,10 @@ func main() {
 	driver := flag.String("dbDriver", "sqlite3", "Name of database driver to use")
 	dbHost := flag.String("dbhost", "file::memory:?mode=memory&cache=shared", "Name of host on which to run Neighbors")
 	developmentMode := flag.Bool("developmentMode", false, "run app in development mode")
+	port, portFound := os.LookupEnv("PORT")
+	if !portFound {
+		port = "8080"
+	}
 	flag.Parse()
 	log.Println("Connecting to host", *dbHost)
 	log.Println("Development mode set to:", *developmentMode)
@@ -32,7 +37,7 @@ func main() {
 	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
 	mux.Handle("/", buildHomeServiceHandler(shelterSessionManager))
 	//mux.HandleFunc("/", loadHomePage)
-	http.ListenAndServe(":8080", mux)
+	http.ListenAndServe(":"+port, mux)
 }
 
 func buildHomeServiceHandler(shelterSessionManager *managers.ShelterSessionManager) resources.HomeServiceHandler {
