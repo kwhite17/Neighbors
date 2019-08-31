@@ -16,17 +16,20 @@ var NeighborsDatabase database.NeighborsDatasource
 
 func main() {
 	driver := flag.String("dbDriver", "sqlite3", "Name of database driver to use")
-	dbHost := flag.String("dbhost", "file::memory:?mode=memory&cache=shared", "Name of host on which to run Neighbors")
+	dbHost, dbHostFound := os.LookupEnv("DATABASE_URL")
 	developmentMode := flag.Bool("developmentMode", false, "run app in development mode")
+	if !dbHostFound {
+		dbHost = "file::memory:?mode=memory&cache=shared"
+	}
 	port, portFound := os.LookupEnv("PORT")
 	if !portFound {
 		port = "8080"
 	}
 	flag.Parse()
-	log.Println("Connecting to host", *dbHost)
+	log.Println("Connecting to host", dbHost)
 	log.Println("Development mode set to:", *developmentMode)
 
-	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(database.BuildConfig(*driver, *dbHost, *developmentMode))}
+	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(database.BuildConfig(*driver, dbHost, *developmentMode))}
 	shelterManager := &managers.ShelterManager{Datasource: NeighborsDatabase}
 	itemManager := &managers.ItemManager{Datasource: NeighborsDatabase}
 	shelterSessionManager := &managers.ShelterSessionManager{Datasource: NeighborsDatabase}
@@ -36,7 +39,6 @@ func main() {
 	mux.Handle("/items/", buildItemServiceHandler(shelterSessionManager))
 	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
 	mux.Handle("/", buildHomeServiceHandler(shelterSessionManager))
-	//mux.HandleFunc("/", loadHomePage)
 	http.ListenAndServe(":"+port, mux)
 }
 

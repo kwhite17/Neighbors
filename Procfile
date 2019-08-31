@@ -1,1 +1,1 @@
-web: cmd -developmentMode
+web: cmd -dbDriver postgres
