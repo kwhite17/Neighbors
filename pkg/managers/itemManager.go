@@ -7,12 +7,12 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
-var createItemQuery = "INSERT INTO items (Category, Gender, Quantity, ShelterID, Size, Status) VALUES (?, ?, ?, ?, ?, ?)"
-var deleteItemQuery = "DELETE FROM items WHERE id=?"
-var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status FROM items WHERE ID=?"
+var createItemQuery = "INSERT INTO items (Category, Gender, Quantity, ShelterID, Size, Status) VALUES ($1, $2, $3, $4, $5, $6)"
+var deleteItemQuery = "DELETE FROM items WHERE id=$1"
+var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status FROM items WHERE ID=$1"
 var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items"
-var updateItemQuery = "UPDATE items SET Category = ?, Gender = ?, Quantity = ?, ShelterID = ?, Size = ?, Status = ? WHERE ID = ?"
-var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items WHERE ShelterID = ?"
+var updateItemQuery = "UPDATE items SET Category = $1, Gender = $2, Quantity = $3, ShelterID = $4, Size = $5, Status = $6 WHERE ID = $7"
+var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items WHERE ShelterID = $1"
 
 type ItemManager struct {
 	Datasource database.Datasource

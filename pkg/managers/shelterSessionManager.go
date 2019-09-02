@@ -12,10 +12,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?)"
-var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=?"
-var getShelterSessionQuery = "SELECT SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
-var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
+var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES ($1, $2, $3, $4, $5)"
+var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=$1"
+var getShelterSessionQuery = "SELECT SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=$1"
+var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = $1, LastSeenTime = $2 WHERE ShelterID = $3"
 
 type ShelterSessionManager struct {
 	Datasource database.Datasource

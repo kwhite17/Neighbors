@@ -29,7 +29,8 @@ func main() {
 	log.Println("Connecting to host", dbHost)
 	log.Println("Development mode set to:", *developmentMode)
 
-	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(database.BuildConfig(*driver, dbHost, *developmentMode))}
+	config := database.BuildConfig(*driver, dbHost, *developmentMode)
+	NeighborsDatabase = database.NeighborsDatasource{Database: database.InitDatabase(config), Config: config}
 	shelterManager := &managers.ShelterManager{Datasource: NeighborsDatabase}
 	itemManager := &managers.ItemManager{Datasource: NeighborsDatabase}
 	shelterSessionManager := &managers.ShelterSessionManager{Datasource: NeighborsDatabase}

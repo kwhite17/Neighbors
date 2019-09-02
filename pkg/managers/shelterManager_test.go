@@ -22,7 +22,7 @@ var dbToClose *sql.DB
 
 func initShelterManager() *ShelterManager {
 	dbToClose = database.InitDatabase(database.SQLITE3)
-	return &ShelterManager{Datasource: &database.NeighborsDatasource{Database: dbToClose}}
+	return &ShelterManager{Datasource: &database.NeighborsDatasource{Database: dbToClose, Config: database.SQLITE3}}
 }
 
 func TestCanReadItsOwnShelterWrite(t *testing.T) {

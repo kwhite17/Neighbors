@@ -8,12 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterQuery = "INSERT INTO shelters (City, Country, Name, Password, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?, ?)"
-var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
-var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=?"
+var createShelterQuery = "INSERT INTO shelters (City, Country, Name, Password, PostalCode, State, Street) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+var deleteShelterQuery = "DELETE FROM shelters WHERE id=$1"
+var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=$1"
 var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters"
-var updateShelterQuery = "UPDATE shelters SET City = ?, Country = ?, Name = ?, PostalCode = ?, State = ?, Street = ? WHERE ID = ?"
-var getPasswordForUsernameQuery = "SELECT ID, Password FROM shelters WHERE Name = ?"
+var updateShelterQuery = "UPDATE shelters SET City = $1, Country = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
+var getPasswordForUsernameQuery = "SELECT ID, Password FROM shelters WHERE Name = $1"
 
 type ShelterManager struct {
 	Datasource database.Datasource

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"log"
 	"path/filepath"
+	"regexp"
 
 	"github.com/kwhite17/Neighbors/pkg/assets"
 	_ "github.com/lib/pq"
@@ -26,6 +27,7 @@ type Datasource interface {
 
 type NeighborsDatasource struct {
 	Database *sql.DB
+	Config   *DbConfig
 }
 
 func InitDatabase(dbConfig *DbConfig) *sql.DB {
@@ -56,11 +58,22 @@ func loadMigration() string {
 }
 
 func (nd NeighborsDatasource) ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row {
-	return nd.Database.QueryRowContext(ctx, query, arguments...)
+	finalQuery := query
+	if nd.Config.Driver != "postgres" {
+		postgresParam := regexp.MustCompile("$[0-9]")
+		finalQuery = postgresParam.ReplaceAllLiteralString(query, "?")
+	}
+	return nd.Database.QueryRowContext(ctx, finalQuery, arguments...)
 }
 
 func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
-	resultSet, err := nd.Database.QueryContext(ctx, query, arguments...)
+	finalQuery := query
+	if nd.Config.Driver != "postgres" {
+		postgresParam := regexp.MustCompile("$[0-9]")
+		finalQuery = postgresParam.ReplaceAllLiteralString(query, "?")
+	}
+
+	resultSet, err := nd.Database.QueryContext(ctx, finalQuery, arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
