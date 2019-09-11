@@ -11,7 +11,7 @@ var testUsername = "testName"
 
 func initShelterSessionManager() *ShelterSessionManager {
 	dbToClose = database.InitDatabase(database.SQLITE3)
-	return &ShelterSessionManager{Datasource: &database.NeighborsDatasource{Database: dbToClose, Config: database.SQLITE3}}
+	return &ShelterSessionManager{Datasource: database.StandardDatasource{Database: dbToClose}}
 }
 
 func TestCanReadItsOwnShelterSessionWrite(t *testing.T) {

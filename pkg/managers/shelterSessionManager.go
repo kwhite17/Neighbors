@@ -69,7 +69,7 @@ func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, sessi
 }
 
 func (sm *ShelterSessionManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getShelterSessionQuery, []interface{}{id})
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getShelterSessionQuery, []interface{}{id})
 }
 
 func (sm *ShelterSessionManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {

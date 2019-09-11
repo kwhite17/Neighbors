@@ -89,7 +89,7 @@ func (im *ItemManager) DeleteItem(ctx context.Context, id interface{}) (int64, e
 }
 
 func (im *ItemManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return im.Datasource.ExecuteReadQuery(ctx, getSingleItemQuery, []interface{}{id})
+	return im.Datasource.ExecuteBatchReadQuery(ctx, getSingleItemQuery, []interface{}{id})
 }
 
 func (im *ItemManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
@@ -97,7 +97,7 @@ func (im *ItemManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
 }
 
 func (im *ItemManager) ReadEntitiesWithQuery(ctx context.Context, query string, args []interface{}) (*sql.Rows, error) {
-	return im.Datasource.ExecuteReadQuery(ctx, query, args)
+	return im.Datasource.ExecuteBatchReadQuery(ctx, query, args)
 }
 
 func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {

@@ -108,11 +108,11 @@ func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (in
 }
 
 func (sm *ShelterManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 }
 
 func (sm *ShelterManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getAllSheltersQuery, nil)
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getAllSheltersQuery, nil)
 }
 
 func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
