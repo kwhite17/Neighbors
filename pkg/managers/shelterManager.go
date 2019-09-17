@@ -86,7 +86,7 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, un
 	}
 
 	values := []interface{}{shelter.City, shelter.Country, shelter.Name, encryptedPassword, shelter.PostalCode, shelter.State, shelter.Street}
-	result, err := sm.WriteEntity(ctx, values)
+	result, err := sm.WriteEntity(ctx, values, true)
 	if err != nil {
 		return -1, err
 	}
@@ -95,12 +95,12 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, un
 
 func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) error {
 	values := []interface{}{shelter.City, shelter.Country, shelter.Name, shelter.PostalCode, shelter.State, shelter.Street, shelter.ID}
-	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterQuery, values)
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterQuery, values, true)
 	return err
 }
 
 func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (int64, error) {
-	result, err := sm.DeleteEntity(ctx, id)
+	result, err := sm.DeleteEntity(ctx, id, true)
 	if err != nil {
 		return -1, err
 	}
@@ -115,16 +115,16 @@ func (sm *ShelterManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
 	return sm.Datasource.ExecuteBatchReadQuery(ctx, getAllSheltersQuery, nil)
 }
 
-func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values)
+func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}, returnResult bool) (sql.Result, error) {
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values, returnResult)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
+func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}, returnResult bool) (sql.Result, error) {
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id}, returnResult)
 	if err != nil {
 		return nil, err
 	}

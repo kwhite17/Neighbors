@@ -10,9 +10,9 @@ import (
 
 type Datasource interface {
 	ExecuteBatchReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error)
-	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error)
+	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}, returnResult bool) (sql.Result, error)
 	ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row
-	finalizeQuery(query string, isWriteQuery bool) string
+	finalizeQuery(query string, isWriteQuery bool, returnResult bool) string
 }
 
 type StandardDatasource struct {
@@ -44,11 +44,11 @@ var SQLITE3 = &dbConfig{
 }
 
 func (sd StandardDatasource) ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row {
-	return sd.Database.QueryRowContext(ctx, sd.finalizeQuery(query, false), arguments...)
+	return sd.Database.QueryRowContext(ctx, sd.finalizeQuery(query, false, false), arguments...)
 }
 
 func (sd StandardDatasource) ExecuteBatchReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
-	resultSet, err := sd.Database.QueryContext(ctx, sd.finalizeQuery(query, false), arguments...)
+	resultSet, err := sd.Database.QueryContext(ctx, sd.finalizeQuery(query, false, false), arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
@@ -56,8 +56,8 @@ func (sd StandardDatasource) ExecuteBatchReadQuery(ctx context.Context, query st
 	return resultSet, nil
 }
 
-func (sd StandardDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
-	result, err := sd.Database.ExecContext(ctx, sd.finalizeQuery(query, true), arguments...)
+func (sd StandardDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}, returnResult bool) (sql.Result, error) {
+	result, err := sd.Database.ExecContext(ctx, sd.finalizeQuery(query, true, false), arguments...)
 	if err != nil {
 		log.Printf("ERROR - WriteQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
@@ -65,7 +65,7 @@ func (sd StandardDatasource) ExecuteWriteQuery(ctx context.Context, query string
 	return result, nil
 }
 
-func (sd StandardDatasource) finalizeQuery(query string, isWriteQuery bool) string {
+func (sd StandardDatasource) finalizeQuery(query string, isWriteQuery bool, returnResult bool) string {
 	postgresParam := regexp.MustCompile("$[0-9]")
 	finalQuery := postgresParam.ReplaceAllLiteralString(query, "?")
 
@@ -73,11 +73,11 @@ func (sd StandardDatasource) finalizeQuery(query string, isWriteQuery bool) stri
 }
 
 func (pd PostgresDatasource) ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row {
-	return pd.Database.QueryRowContext(ctx, pd.finalizeQuery(query, false), arguments...)
+	return pd.Database.QueryRowContext(ctx, pd.finalizeQuery(query, false, false), arguments...)
 }
 
 func (pd PostgresDatasource) ExecuteBatchReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
-	resultSet, err := pd.Database.QueryContext(ctx, pd.finalizeQuery(query, false), arguments...)
+	resultSet, err := pd.Database.QueryContext(ctx, pd.finalizeQuery(query, false, false), arguments...)
 	if err != nil {
 		log.Printf("ERROR - ReadQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
@@ -85,8 +85,8 @@ func (pd PostgresDatasource) ExecuteBatchReadQuery(ctx context.Context, query st
 	return resultSet, nil
 }
 
-func (pd PostgresDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
-	rows, err := pd.Database.QueryContext(ctx, pd.finalizeQuery(query, true), arguments...)
+func (pd PostgresDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}, returnResult bool) (sql.Result, error) {
+	rows, err := pd.Database.QueryContext(ctx, pd.finalizeQuery(query, true, returnResult), arguments...)
 	if err != nil {
 		log.Printf("ERROR - WriteQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
 		return nil, err
@@ -95,9 +95,9 @@ func (pd PostgresDatasource) ExecuteWriteQuery(ctx context.Context, query string
 	return pd.buildPostgresResult(rows), nil
 }
 
-func (pd PostgresDatasource) finalizeQuery(query string, isWriteQuery bool) string {
+func (pd PostgresDatasource) finalizeQuery(query string, isWriteQuery bool, returnResult bool) string {
 	finalQuery := query
-	if isWriteQuery {
+	if isWriteQuery && returnResult {
 		finalQuery = query + " RETURNING id"
 	}
 

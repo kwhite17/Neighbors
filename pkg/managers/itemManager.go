@@ -67,7 +67,7 @@ func (im *ItemManager) GetItemsForShelter(ctx context.Context, shelterID int64) 
 
 func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error) {
 	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status}
-	result, err := im.WriteEntity(ctx, values)
+	result, err := im.WriteEntity(ctx, values, true)
 	if err != nil {
 		return -1, err
 	}
@@ -76,12 +76,12 @@ func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error)
 
 func (im *ItemManager) UpdateItem(ctx context.Context, item *Item) error {
 	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status, item.ID}
-	_, err := im.Datasource.ExecuteWriteQuery(ctx, updateItemQuery, values)
+	_, err := im.Datasource.ExecuteWriteQuery(ctx, updateItemQuery, values, true)
 	return err
 }
 
 func (im *ItemManager) DeleteItem(ctx context.Context, id interface{}) (int64, error) {
-	result, err := im.DeleteEntity(ctx, id)
+	result, err := im.DeleteEntity(ctx, id, true)
 	if err != nil {
 		return -1, err
 	}
@@ -100,16 +100,16 @@ func (im *ItemManager) ReadEntitiesWithQuery(ctx context.Context, query string, 
 	return im.Datasource.ExecuteBatchReadQuery(ctx, query, args)
 }
 
-func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := im.Datasource.ExecuteWriteQuery(ctx, createItemQuery, values)
+func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}, returnResult bool) (sql.Result, error) {
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, createItemQuery, values, returnResult)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (im *ItemManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id})
+func (im *ItemManager) DeleteEntity(ctx context.Context, id interface{}, returnResult bool) (sql.Result, error) {
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id}, returnResult)
 	if err != nil {
 		return nil, err
 	}

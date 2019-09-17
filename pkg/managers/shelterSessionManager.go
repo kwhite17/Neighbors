@@ -56,7 +56,7 @@ func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelte
 
 func (sm *ShelterSessionManager) UpdateShelterSession(ctx context.Context, shelterID int64, loginTime int64, lastSeenTime int64) error {
 	values := []interface{}{loginTime, lastSeenTime, shelterID}
-	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterSessionQuery, values)
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterSessionQuery, values, false)
 	return err
 }
 
@@ -77,7 +77,7 @@ func (sm *ShelterSessionManager) ReadEntities(ctx context.Context) (*sql.Rows, e
 }
 
 func (sm *ShelterSessionManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values, false)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (sm *ShelterSessionManager) WriteEntity(ctx context.Context, values []inter
 }
 
 func (sm *ShelterSessionManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{id})
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{id}, false)
 	if err != nil {
 		return nil, err
 	}
