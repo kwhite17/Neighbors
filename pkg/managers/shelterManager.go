@@ -8,12 +8,12 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterQuery = "INSERT INTO shelters (City, Country, Name, Password, PostalCode, State, Street) VALUES (?, ?, ?, ?, ?, ?, ?)"
-var deleteShelterQuery = "DELETE FROM shelters WHERE id=?"
-var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=?"
+var createShelterQuery = "INSERT INTO shelters (City, Country, Name, Password, PostalCode, State, Street) VALUES ($1, $2, $3, $4, $5, $6, $7)"
+var deleteShelterQuery = "DELETE FROM shelters WHERE id=$1"
+var getSingleShelterQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters where id=$1"
 var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street FROM shelters"
-var updateShelterQuery = "UPDATE shelters SET City = ?, Country = ?, Name = ?, PostalCode = ?, State = ?, Street = ? WHERE ID = ?"
-var getPasswordForUsernameQuery = "SELECT ID, Password FROM shelters WHERE Name = ?"
+var updateShelterQuery = "UPDATE shelters SET City = $1, Country = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
+var getPasswordForUsernameQuery = "SELECT ID, Password FROM shelters WHERE Name = $1"
 
 type ShelterManager struct {
 	Datasource database.Datasource
@@ -86,7 +86,7 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, un
 	}
 
 	values := []interface{}{shelter.City, shelter.Country, shelter.Name, encryptedPassword, shelter.PostalCode, shelter.State, shelter.Street}
-	result, err := sm.WriteEntity(ctx, values)
+	result, err := sm.WriteEntity(ctx, values, true)
 	if err != nil {
 		return -1, err
 	}
@@ -95,12 +95,12 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, un
 
 func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) error {
 	values := []interface{}{shelter.City, shelter.Country, shelter.Name, shelter.PostalCode, shelter.State, shelter.Street, shelter.ID}
-	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterQuery, values)
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterQuery, values, true)
 	return err
 }
 
 func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (int64, error) {
-	result, err := sm.DeleteEntity(ctx, id)
+	result, err := sm.DeleteEntity(ctx, id, true)
 	if err != nil {
 		return -1, err
 	}
@@ -108,23 +108,23 @@ func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (in
 }
 
 func (sm *ShelterManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 }
 
 func (sm *ShelterManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getAllSheltersQuery, nil)
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getAllSheltersQuery, nil)
 }
 
-func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values)
+func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}, returnResult bool) (sql.Result, error) {
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values, returnResult)
 	if err != nil {
 		return nil, err
 	}
 	return result, nil
 }
 
-func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id})
+func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}, returnResult bool) (sql.Result, error) {
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id}, returnResult)
 	if err != nil {
 		return nil, err
 	}

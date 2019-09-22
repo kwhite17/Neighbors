@@ -19,7 +19,7 @@ var testStatus = "testStatus"
 
 func initItemManager() *ItemManager {
 	dbToClose = database.InitDatabase(database.SQLITE3)
-	return &ItemManager{Datasource: &database.NeighborsDatasource{Database: dbToClose}}
+	return &ItemManager{Datasource: database.StandardDatasource{Database: dbToClose}}
 }
 
 func cleanDatabase() {

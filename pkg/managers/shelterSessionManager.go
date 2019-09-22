@@ -12,10 +12,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES (?, ?, ?, ?, ?)"
-var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=?"
-var getShelterSessionQuery = "SELECT SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=?"
-var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = ?, LastSeenTime = ? WHERE ShelterID = ?"
+var createShelterSessionQuery = "INSERT INTO shelterSessions (SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime) VALUES ($1, $2, $3, $4, $5)"
+var deleteShelterSessionQuery = "DELETE FROM shelterSessions WHERE SessionKey=$1"
+var getShelterSessionQuery = "SELECT SessionKey, ShelterID, ShelterName, LoginTime, LastSeenTime FROM shelterSessions WHERE SessionKey=$1"
+var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = $1, LastSeenTime = $2 WHERE ShelterID = $3"
 
 type ShelterSessionManager struct {
 	Datasource database.Datasource
@@ -56,7 +56,7 @@ func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelte
 
 func (sm *ShelterSessionManager) UpdateShelterSession(ctx context.Context, shelterID int64, loginTime int64, lastSeenTime int64) error {
 	values := []interface{}{loginTime, lastSeenTime, shelterID}
-	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterSessionQuery, values)
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, updateShelterSessionQuery, values, false)
 	return err
 }
 
@@ -69,7 +69,7 @@ func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, sessi
 }
 
 func (sm *ShelterSessionManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteReadQuery(ctx, getShelterSessionQuery, []interface{}{id})
+	return sm.Datasource.ExecuteBatchReadQuery(ctx, getShelterSessionQuery, []interface{}{id})
 }
 
 func (sm *ShelterSessionManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
@@ -77,7 +77,7 @@ func (sm *ShelterSessionManager) ReadEntities(ctx context.Context) (*sql.Rows, e
 }
 
 func (sm *ShelterSessionManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values, false)
 	if err != nil {
 		return nil, err
 	}
@@ -85,7 +85,7 @@ func (sm *ShelterSessionManager) WriteEntity(ctx context.Context, values []inter
 }
 
 func (sm *ShelterSessionManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{id})
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{id}, false)
 	if err != nil {
 		return nil, err
 	}

@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 
 	"github.com/kwhite17/Neighbors/pkg/assets"
+	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
 
@@ -17,17 +18,7 @@ type DbManager interface {
 	DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error)
 }
 
-type Datasource interface {
-	ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error)
-	ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error)
-	ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row
-}
-
-type NeighborsDatasource struct {
-	Database *sql.DB
-}
-
-func InitDatabase(dbConfig *DbConfig) *sql.DB {
+func InitDatabase(dbConfig *dbConfig) *sql.DB {
 	db, err := sql.Open(dbConfig.Driver, dbConfig.Host)
 	if err != nil {
 		log.Fatalf("ERROR - dbInit: Connect - %v\n", err)
@@ -52,26 +43,4 @@ func loadMigration() string {
 	}
 
 	return string(migrationFile)
-}
-
-func (nd NeighborsDatasource) ExecuteSingleReadQuery(ctx context.Context, query string, arguments []interface{}) *sql.Row {
-	return nd.Database.QueryRowContext(ctx, query, arguments...)
-}
-
-func (nd NeighborsDatasource) ExecuteReadQuery(ctx context.Context, query string, arguments []interface{}) (*sql.Rows, error) {
-	resultSet, err := nd.Database.QueryContext(ctx, query, arguments...)
-	if err != nil {
-		log.Printf("ERROR - ReadQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
-		return nil, err
-	}
-	return resultSet, nil
-}
-
-func (nd NeighborsDatasource) ExecuteWriteQuery(ctx context.Context, query string, arguments []interface{}) (sql.Result, error) {
-	result, err := nd.Database.ExecContext(ctx, query, arguments...)
-	if err != nil {
-		log.Printf("ERROR - WriteQuery: %s, Args: %v, Error: %v\n", query, arguments, err)
-		return nil, err
-	}
-	return result, nil
 }
