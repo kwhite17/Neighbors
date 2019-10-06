@@ -1,28 +1,29 @@
 {{define "main-content"}}
-    <h1>All Shelters</h1>
-    <table class="table table-striped">
-        <thead class="thead-dark">
-            <th>
-                Shelter Name
-            </th>
-            <th>
-                Address
-            </th>
-            <th>
-                <a class="btn btn-small btn-outline-primary" role="button" href="/shelters/new">Register Shelter</a>
-            </th>
-        </thead>
-        <tbody>
-            {{range $index, $element := .Shelters }}
-                <tr>
-                    <td>{{ $element.Name }}</td>
-                    <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.Country }},
-                        {{ $element.PostalCode }}</td>
-                    <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
-                </tr>
-            {{end}}
-        </tbody>
-    </table>
+<h1>All Shelters</h1>
+<br>
+<table class="table table-striped">
+    <thead class="thead-dark">
+        <th>
+            Shelter Name
+        </th>
+        <th>
+            Address
+        </th>
+        <th>
+            <a class="btn btn-small btn-outline-primary" role="button" href="/shelters/new">Register Shelter</a>
+        </th>
+    </thead>
+    <tbody>
+        {{range $index, $element := .Shelters }}
+        <tr>
+            <td>{{ $element.Name }}</td>
+            <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.Country }},
+                {{ $element.PostalCode }}</td>
+            <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
+        </tr>
+        {{end}}
+    </tbody>
+</table>
 {{end}}
 
 {{define "script-content"}}{{end}}
