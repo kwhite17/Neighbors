@@ -3,7 +3,6 @@ package managers
 import (
 	"context"
 	"database/sql"
-	"fmt"
 	"strconv"
 	"time"
 
@@ -19,7 +18,6 @@ var updateShelterSessionQuery = "UPDATE shelterSessions SET LoginTime = $1, Last
 
 type ShelterSessionManager struct {
 	Datasource database.Datasource
-	database.DbManager
 }
 
 type ShelterSession struct {
@@ -47,7 +45,7 @@ func (sm *ShelterSessionManager) WriteShelterSession(ctx context.Context, shelte
 	cookieID := strconv.FormatInt(shelterID, 10) + "-" + uuid.New().String()
 	currentTime := time.Now().Unix()
 	values := []interface{}{cookieID, shelterID, shelterName, currentTime, currentTime}
-	_, err := sm.WriteEntity(ctx, values)
+	_, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values, false)
 	if err != nil {
 		return "", err
 	}
@@ -61,35 +59,11 @@ func (sm *ShelterSessionManager) UpdateShelterSession(ctx context.Context, shelt
 }
 
 func (sm *ShelterSessionManager) DeleteShelterSession(ctx context.Context, sessionKey interface{}) (int64, error) {
-	result, err := sm.DeleteEntity(ctx, sessionKey)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{sessionKey}, false)
 	if err != nil {
 		return -1, err
 	}
 	return result.RowsAffected()
-}
-
-func (sm *ShelterSessionManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteBatchReadQuery(ctx, getShelterSessionQuery, []interface{}{id})
-}
-
-func (sm *ShelterSessionManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return nil, fmt.Errorf("ShelterSessionManager does not implement method")
-}
-
-func (sm *ShelterSessionManager) WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterSessionQuery, values, false)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (sm *ShelterSessionManager) DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterSessionQuery, []interface{}{id}, false)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (sm *ShelterSessionManager) buildShelterSession(result *sql.Rows) ([]*ShelterSession, error) {

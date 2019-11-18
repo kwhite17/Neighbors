@@ -1,5 +1,6 @@
 {{define "main-content"}}
 <h1>Update Item Request</h1>
+<br>
 <form id="editForm">
     <input type="hidden" name="id" value={{.Item.ID}}>
     <input type="hidden" name="shelterId" value={{.Item.ShelterID}}>
@@ -44,37 +45,37 @@
 {{end}}
 
 {{define "script-content"}}
-    <script type="text/javascript">
-        var updateItem = function () {
-            var req = new XMLHttpRequest();
-            var formElements = document.getElementById('editForm').elements;
-            var parts = window.location.pathname.split("/");
-            parts.pop();
-            var putPath = window.location.origin + parts.join("/");
-            var elementUpdate = {
-                Category: formElements.namedItem('category').value,
-                Gender: formElements.namedItem('gender').value,
-                Quantity: Number(formElements.namedItem('quantity').value),
-                Size: formElements.namedItem('size').value,
-                Status: formElements.namedItem('status').value,
-                ID: Number(formElements.namedItem('id').value),
-                ShelterID: Number(formElements.namedItem('shelterId').value),
-            };
-
-            req.open("PUT", putPath);
-            req.onreadystatechange = function () {
-                if (req.readyState === 4 && req.status === 204) {
-                    window.location = putPath;
-                    return false;
-                } else if (req.readyState === 4 && req.status !== 204) {
-                    alert("Failed to update item!");
-                    return false;
-                }
-            };
-
-            req.send(JSON.stringify(elementUpdate));
-
-            return false;
+<script type="text/javascript">
+    var updateItem = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('editForm').elements;
+        var parts = window.location.pathname.split("/");
+        parts.pop();
+        var putPath = window.location.origin + parts.join("/");
+        var elementUpdate = {
+            Category: formElements.namedItem('category').value,
+            Gender: formElements.namedItem('gender').value,
+            Quantity: Number(formElements.namedItem('quantity').value),
+            Size: formElements.namedItem('size').value,
+            Status: formElements.namedItem('status').value,
+            ID: Number(formElements.namedItem('id').value),
+            ShelterID: Number(formElements.namedItem('shelterId').value),
         };
-    </script>
+
+        req.open("PUT", putPath);
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = putPath;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to update item!");
+                return false;
+            }
+        };
+
+        req.send(JSON.stringify(elementUpdate));
+
+        return false;
+    };
+</script>
 {{end}}

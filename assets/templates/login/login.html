@@ -1,44 +1,45 @@
 {{define "main-content"}}
-    <h1>Shelter Login</h1>
-    <form id="loginForm">
-        <div class="form-group">
-            <label for="shelterName">Shelter Name</label>
-            <input type="text" id="shelterName" class="form-control" name="name" placeholder="Enter Shelter Name">
-        </div>
-        <div class="form-group">
-            <label for="shelterPassword">Password</label>
-            <input type="password" id="shelterPassword" class="form-control" name="password" placeholder="Password">
-        </div>
-        <button type="button" class="btn btn-primary" onclick="login()">Login</button>
-    </form>
+<h1>Shelter Login</h1>
+<br>
+<form id="loginForm">
+    <div class="form-group">
+        <label for="shelterName">Shelter Name</label>
+        <input type="text" id="shelterName" class="form-control" name="name" placeholder="Enter Shelter Name">
+    </div>
+    <div class="form-group">
+        <label for="shelterPassword">Password</label>
+        <input type="password" id="shelterPassword" class="form-control" name="password" placeholder="Password">
+    </div>
+    <button type="button" class="btn btn-primary" onclick="login()">Login</button>
+</form>
 {{end}}
 
 {{define "script-content"}}
-    <script type="text/javascript">
-        var login = function () {
-            var req = new XMLHttpRequest();
-            req.withCredentials = true;
-            var formElements = document.getElementById('loginForm').elements;
-            var elementUpdate = {
-                Name: formElements.namedItem('name').value,
-                Password: formElements.namedItem('password').value,
-            };
-
-            req.open("POST", window.location.origin + '/session/login/');
-            req.onreadystatechange = function () {
-                if (req.readyState === 4 && req.status === 200) {
-                    var response = JSON.parse(req.response);
-                    window.location = window.location.origin + '/shelters/' + response.ID;
-                    return false;
-                } else if (req.readyState === 4 && req.status !== 200) {
-                    alert("Failed to login!");
-                    return false;
-                }
-            };
-
-            req.send(JSON.stringify(elementUpdate));
-
-            return false;
+<script type="text/javascript">
+    var login = function () {
+        var req = new XMLHttpRequest();
+        req.withCredentials = true;
+        var formElements = document.getElementById('loginForm').elements;
+        var elementUpdate = {
+            Name: formElements.namedItem('name').value,
+            Password: formElements.namedItem('password').value,
         };
-    </script>
+
+        req.open("POST", window.location.origin + '/session/login/');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 200) {
+                var response = JSON.parse(req.response);
+                window.location = window.location.origin + '/shelters/' + response.ID;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 200) {
+                alert("Failed to login!");
+                return false;
+            }
+        };
+
+        req.send(JSON.stringify(elementUpdate));
+
+        return false;
+    };
+</script>
 {{end}}

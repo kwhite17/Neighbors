@@ -16,7 +16,6 @@ var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID,
 
 type ItemManager struct {
 	Datasource database.Datasource
-	database.DbManager
 }
 
 type Item struct {
@@ -30,7 +29,7 @@ type Item struct {
 }
 
 func (im *ItemManager) GetItem(ctx context.Context, id interface{}) (*Item, error) {
-	result, err := im.ReadEntity(ctx, id)
+	result, err := im.Datasource.ExecuteBatchReadQuery(ctx, getSingleItemQuery, []interface{}{id})
 	if err != nil {
 		return nil, err
 	}
@@ -42,7 +41,7 @@ func (im *ItemManager) GetItem(ctx context.Context, id interface{}) (*Item, erro
 }
 
 func (im *ItemManager) GetItems(ctx context.Context) ([]*Item, error) {
-	result, err := im.ReadEntities(ctx)
+	result, err := im.Datasource.ExecuteBatchReadQuery(ctx, getAllItemsQuery, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +53,7 @@ func (im *ItemManager) GetItems(ctx context.Context) ([]*Item, error) {
 }
 
 func (im *ItemManager) GetItemsForShelter(ctx context.Context, shelterID int64) ([]*Item, error) {
-	result, err := im.ReadEntitiesWithQuery(ctx, getItemsForShelterQuery, []interface{}{shelterID})
+	result, err := im.Datasource.ExecuteBatchReadQuery(ctx, getItemsForShelterQuery, []interface{}{shelterID})
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +66,7 @@ func (im *ItemManager) GetItemsForShelter(ctx context.Context, shelterID int64) 
 
 func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error) {
 	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status}
-	result, err := im.WriteEntity(ctx, values, true)
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, createItemQuery, values, true)
 	if err != nil {
 		return -1, err
 	}
@@ -81,39 +80,11 @@ func (im *ItemManager) UpdateItem(ctx context.Context, item *Item) error {
 }
 
 func (im *ItemManager) DeleteItem(ctx context.Context, id interface{}) (int64, error) {
-	result, err := im.DeleteEntity(ctx, id, true)
+	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id}, true)
 	if err != nil {
 		return -1, err
 	}
 	return result.RowsAffected()
-}
-
-func (im *ItemManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return im.Datasource.ExecuteBatchReadQuery(ctx, getSingleItemQuery, []interface{}{id})
-}
-
-func (im *ItemManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return im.ReadEntitiesWithQuery(ctx, getAllItemsQuery, nil)
-}
-
-func (im *ItemManager) ReadEntitiesWithQuery(ctx context.Context, query string, args []interface{}) (*sql.Rows, error) {
-	return im.Datasource.ExecuteBatchReadQuery(ctx, query, args)
-}
-
-func (im *ItemManager) WriteEntity(ctx context.Context, values []interface{}, returnResult bool) (sql.Result, error) {
-	result, err := im.Datasource.ExecuteWriteQuery(ctx, createItemQuery, values, returnResult)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (im *ItemManager) DeleteEntity(ctx context.Context, id interface{}, returnResult bool) (sql.Result, error) {
-	result, err := im.Datasource.ExecuteWriteQuery(ctx, deleteItemQuery, []interface{}{id}, returnResult)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (im *ItemManager) buildItems(result *sql.Rows) ([]*Item, error) {

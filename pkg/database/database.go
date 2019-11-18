@@ -1,7 +1,6 @@
 package database
 
 import (
-	"context"
 	"database/sql"
 	"log"
 	"path/filepath"
@@ -10,13 +9,6 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 )
-
-type DbManager interface {
-	ReadAllEntities(ctx context.Context) (*sql.Rows, error)
-	ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error)
-	WriteEntity(ctx context.Context, values []interface{}) (sql.Result, error)
-	DeleteEntity(ctx context.Context, id interface{}) (sql.Result, error)
-}
 
 func InitDatabase(dbConfig *dbConfig) *sql.DB {
 	db, err := sql.Open(dbConfig.Driver, dbConfig.Host)

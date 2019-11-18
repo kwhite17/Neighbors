@@ -17,7 +17,6 @@ var getPasswordForUsernameQuery = "SELECT ID, Password FROM shelters WHERE Name 
 
 type ShelterManager struct {
 	Datasource database.Datasource
-	database.DbManager
 }
 
 type ContactInformation struct {
@@ -36,7 +35,7 @@ type Shelter struct {
 }
 
 func (sm *ShelterManager) GetShelter(ctx context.Context, id interface{}) (*Shelter, error) {
-	result, err := sm.ReadEntity(ctx, id)
+	result, err := sm.Datasource.ExecuteBatchReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
 
 	if err != nil {
 		return nil, err
@@ -68,7 +67,7 @@ func (sm *ShelterManager) GetPasswordForUsername(ctx context.Context, username s
 }
 
 func (sm *ShelterManager) GetShelters(ctx context.Context) ([]*Shelter, error) {
-	result, err := sm.ReadEntities(ctx)
+	result, err := sm.Datasource.ExecuteBatchReadQuery(ctx, getAllSheltersQuery, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -86,7 +85,7 @@ func (sm *ShelterManager) WriteShelter(ctx context.Context, shelter *Shelter, un
 	}
 
 	values := []interface{}{shelter.City, shelter.Country, shelter.Name, encryptedPassword, shelter.PostalCode, shelter.State, shelter.Street}
-	result, err := sm.WriteEntity(ctx, values, true)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values, true)
 	if err != nil {
 		return -1, err
 	}
@@ -100,35 +99,11 @@ func (sm *ShelterManager) UpdateShelter(ctx context.Context, shelter *Shelter) e
 }
 
 func (sm *ShelterManager) DeleteShelter(ctx context.Context, id interface{}) (int64, error) {
-	result, err := sm.DeleteEntity(ctx, id, true)
+	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id}, true)
 	if err != nil {
 		return -1, err
 	}
 	return result.RowsAffected()
-}
-
-func (sm *ShelterManager) ReadEntity(ctx context.Context, id interface{}) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteBatchReadQuery(ctx, getSingleShelterQuery, []interface{}{id})
-}
-
-func (sm *ShelterManager) ReadEntities(ctx context.Context) (*sql.Rows, error) {
-	return sm.Datasource.ExecuteBatchReadQuery(ctx, getAllSheltersQuery, nil)
-}
-
-func (sm *ShelterManager) WriteEntity(ctx context.Context, values []interface{}, returnResult bool) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, createShelterQuery, values, returnResult)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
-}
-
-func (sm *ShelterManager) DeleteEntity(ctx context.Context, id interface{}, returnResult bool) (sql.Result, error) {
-	result, err := sm.Datasource.ExecuteWriteQuery(ctx, deleteShelterQuery, []interface{}{id}, returnResult)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
 }
 
 func (sm *ShelterManager) buildShelters(result *sql.Rows) ([]*Shelter, error) {
