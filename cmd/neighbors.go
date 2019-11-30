@@ -28,45 +28,45 @@ func main() {
 	log.Println("Development mode set to:", *developmentMode)
 
 	neighborsDatasource := database.BuildDatasource(*driver, dbHost, *developmentMode)
-	shelterManager := &managers.ShelterManager{Datasource: neighborsDatasource}
+	userManager := &managers.UserManager{Datasource: neighborsDatasource}
 	itemManager := &managers.ItemManager{Datasource: neighborsDatasource}
-	shelterSessionManager := &managers.ShelterSessionManager{Datasource: neighborsDatasource}
+	userSessionManager := &managers.UserSessionManager{Datasource: neighborsDatasource}
 	mux := http.NewServeMux()
 
-	mux.Handle("/shelters/", buildShelterServiceHandler(shelterManager, shelterSessionManager, itemManager))
-	mux.Handle("/items/", buildItemServiceHandler(shelterSessionManager, itemManager))
-	mux.Handle("/session/", buildLoginServiceHandler(shelterManager, shelterSessionManager))
-	mux.Handle("/", buildHomeServiceHandler(shelterSessionManager))
+	mux.Handle("/shelters/", buildUserServiceHandler(userManager, userSessionManager, itemManager))
+	mux.Handle("/items/", buildItemServiceHandler(userSessionManager, itemManager))
+	mux.Handle("/session/", buildLoginServiceHandler(userManager, userSessionManager))
+	mux.Handle("/", buildHomeServiceHandler(userSessionManager))
 	http.ListenAndServe(":"+port, mux)
 }
 
-func buildHomeServiceHandler(shelterSessionManager *managers.ShelterSessionManager) resources.HomeServiceHandler {
+func buildHomeServiceHandler(userSessionManager *managers.UserSessionManager) resources.HomeServiceHandler {
 	return resources.HomeServiceHandler{
-		ShelterSessionManager: shelterSessionManager,
+		UserSessionManager: userSessionManager,
 	}
 }
 
-func buildShelterServiceHandler(shelterManager *managers.ShelterManager, shelterSessionManager *managers.ShelterSessionManager, itemManager *managers.ItemManager) resources.ShelterServiceHandler {
-	return resources.ShelterServiceHandler{
-		ShelterRetriever:      &retrievers.ShelterRetriever{},
-		ShelterManager:        shelterManager,
-		ShelterSessionManager: shelterSessionManager,
-		ItemManager:           itemManager,
+func buildUserServiceHandler(userManager *managers.UserManager, userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager) resources.UserServiceHandler {
+	return resources.UserServiceHandler{
+		UserRetriever:      &retrievers.ShelterRetriever{},
+		UserManager:        userManager,
+		UserSessionManager: userSessionManager,
+		ItemManager:        itemManager,
 	}
 }
 
-func buildItemServiceHandler(shelterSessionManager *managers.ShelterSessionManager, itemManager *managers.ItemManager) resources.ItemServiceHandler {
+func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager) resources.ItemServiceHandler {
 	return resources.ItemServiceHandler{
-		ItemRetriever:         &retrievers.ItemRetriever{},
-		ItemManager:           itemManager,
-		ShelterSessionManager: shelterSessionManager,
+		ItemRetriever:      &retrievers.ItemRetriever{},
+		ItemManager:        itemManager,
+		UserSessionManager: userSessionManager,
 	}
 }
 
-func buildLoginServiceHandler(shelterManager *managers.ShelterManager, shelterSessionManager *managers.ShelterSessionManager) resources.LoginServiceHandler {
+func buildLoginServiceHandler(userManager *managers.UserManager, userSessionManager *managers.UserSessionManager) resources.LoginServiceHandler {
 	return resources.LoginServiceHandler{
-		ShelterManager:        shelterManager,
-		ShelterSessionManager: shelterSessionManager,
-		LoginRetriever:        &retrievers.LoginRetriever{},
+		UserManager:        userManager,
+		UserSessionManager: userSessionManager,
+		LoginRetriever:     &retrievers.LoginRetriever{},
 	}
 }

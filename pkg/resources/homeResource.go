@@ -2,16 +2,17 @@ package resources
 
 import (
 	"database/sql"
-	"github.com/kwhite17/Neighbors/pkg/managers"
-	"github.com/kwhite17/Neighbors/pkg/retrievers"
 	"log"
 	"net/http"
 	"strconv"
 	"strings"
+
+	"github.com/kwhite17/Neighbors/pkg/managers"
+	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
 type HomeServiceHandler struct {
-	ShelterSessionManager *managers.ShelterSessionManager
+	UserSessionManager *managers.UserSessionManager
 }
 
 func (hsh HomeServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -34,7 +35,7 @@ func (hsh HomeServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		}
 
 		err = tpl.Execute(w, map[string]interface{}{
-			"ShelterSession": shelterSession,
+			"UserSession": shelterSession,
 		})
 
 		if err != nil {
@@ -45,9 +46,9 @@ func (hsh HomeServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	return
 }
 
-func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.ShelterSession) {
+func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
-	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/"), "/")
+	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/"), "/")
 
 	switch r.Method {
 	case http.MethodPost:
@@ -55,7 +56,7 @@ func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.She
 			return true, nil
 		}
 
-		shelterSession, err := hsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		shelterSession, err := hsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 		if err != nil {
 			log.Println(err)
@@ -70,7 +71,7 @@ func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.She
 			return false, nil
 		}
 
-		shelterSession, err := hsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		shelterSession, err := hsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 		if err != nil {
 			log.Println(err)
@@ -84,13 +85,13 @@ func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.She
 			return false, shelterSession
 		}
 
-		return shelterSession.ShelterID == shelterID, shelterSession
+		return shelterSession.UserID == shelterID, shelterSession
 	case http.MethodGet:
 		var err error
-		shelterSession := &managers.ShelterSession{}
+		shelterSession := &managers.UserSession{}
 
 		if cookie != nil {
-			shelterSession, err = hsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			shelterSession, err = hsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 			if err != nil && err != sql.ErrNoRows {
 				log.Println(err)
@@ -106,7 +107,7 @@ func (hsh HomeServiceHandler) isAuthorized(r *http.Request) (bool, *managers.She
 				return false, shelterSession
 			}
 
-			return shelterSession != nil && shelterSession.ShelterID == shelterID, shelterSession
+			return shelterSession != nil && shelterSession.UserID == shelterID, shelterSession
 		}
 		return true, shelterSession
 	default:

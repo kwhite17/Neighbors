@@ -12,30 +12,30 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
-var sheltersEndpoint = "/shelters/"
+var usersEndpoint = "/shelters/"
 
-type ShelterServiceHandler struct {
-	ShelterManager        *managers.ShelterManager
-	ItemManager           *managers.ItemManager
-	ShelterSessionManager *managers.ShelterSessionManager
-	ShelterRetriever      *retrievers.ShelterRetriever
+type UserServiceHandler struct {
+	UserManager        *managers.UserManager
+	ItemManager        *managers.ItemManager
+	UserSessionManager *managers.UserSessionManager
+	UserRetriever      *retrievers.ShelterRetriever
 }
 
-func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	isAuthorized, shelterSession := handler.isAuthorized(r)
+func (handler UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	tplMap := map[string]interface{}{
-		"ShelterSession": shelterSession,
+		"UserSession": userSession,
 	}
 
-	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/"), "/")
+	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/"), "/")
 	switch pathArray[len(pathArray)-1] {
 	case "new":
-		t, err := handler.ShelterRetriever.RetrieveCreateEntityTemplate()
+		t, err := handler.UserRetriever.RetrieveCreateEntityTemplate()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -47,50 +47,50 @@ func (handler ShelterServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Re
 			log.Println(err)
 		}
 	case "edit":
-		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
+		userID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		shelter, err := handler.ShelterManager.GetShelter(r.Context(), shelterID)
+		user, err := handler.UserManager.GetUser(r.Context(), userID)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		t, err := handler.ShelterRetriever.RetrieveEditEntityTemplate()
+		t, err := handler.UserRetriever.RetrieveEditEntityTemplate()
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
 			return
 		}
 
-		tplMap["Shelter"] = shelter
+		tplMap["User"] = user
 		t.Execute(w, tplMap)
 	default:
-		handler.requestMethodHandler(w, r, shelterSession)
+		handler.requestMethodHandler(w, r, userSession)
 	}
 }
 
-func (handler ShelterServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
+func (handler UserServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	switch r.Method {
 	case http.MethodPost:
-		handler.handleCreateShelter(w, r)
+		handler.handleCreateUser(w, r)
 	case http.MethodGet:
-		handler.handleGetShelter(w, r, shelterSession)
+		handler.handleGetUser(w, r, userSession)
 	case http.MethodDelete:
-		handler.handleDeleteShelter(w, r)
+		handler.handleDeleteUser(w, r)
 	case http.MethodPut:
-		handler.handleUpdateShelter(w, r)
+		handler.handleUpdateUser(w, r)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
 }
 
-func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, r *http.Request) {
+func (handler UserServiceHandler) handleCreateUser(w http.ResponseWriter, r *http.Request) {
 	createData := make(map[string]interface{}, 0)
 	err := json.NewDecoder(r.Body).Decode(&createData)
 	if err != nil {
@@ -99,37 +99,37 @@ func (handler ShelterServiceHandler) handleCreateShelter(w http.ResponseWriter, 
 		return
 	}
 
-	shelter := &managers.Shelter{ContactInformation: handler.buildContactInformation(createData)}
-	shelterID, err := handler.ShelterManager.WriteShelter(r.Context(), shelter, createData["Password"].(string))
+	user := &managers.User{ContactInformation: handler.buildContactInformation(createData)}
+	userID, err := handler.UserManager.WriteUser(r.Context(), user, createData["Password"].(string))
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	shelter.ID = shelterID
-	cookieID, err := handler.ShelterSessionManager.WriteShelterSession(r.Context(), shelterID, shelter.Name)
+	user.ID = userID
+	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, user.Name)
 	if err != nil {
-		handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
+		handler.UserManager.DeleteUser(r.Context(), userID)
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 	cookie := http.Cookie{Name: "NeighborsAuth", Value: cookieID, HttpOnly: false, MaxAge: 24 * 3600 * 7, Secure: false, Path: "/"}
 	http.SetCookie(w, &cookie)
-	json.NewEncoder(w).Encode(shelter)
+	json.NewEncoder(w).Encode(user)
 }
 
-func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, r *http.Request) {
-	shelter := &managers.Shelter{}
-	err := json.NewDecoder(r.Body).Decode(shelter)
+func (handler UserServiceHandler) handleUpdateUser(w http.ResponseWriter, r *http.Request) {
+	user := &managers.User{}
+	err := json.NewDecoder(r.Body).Decode(user)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
-	err = handler.ShelterManager.UpdateShelter(r.Context(), shelter)
+	err = handler.UserManager.UpdateUser(r.Context(), user)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -139,42 +139,42 @@ func (handler ShelterServiceHandler) handleUpdateShelter(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ShelterServiceHandler) handleGetShelter(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
-	if shelter := strings.TrimPrefix(r.URL.Path, sheltersEndpoint); len(shelter) > 0 {
-		handler.handleGetSingleShelter(w, r, shelter, shelterSession)
+func (handler UserServiceHandler) handleGetUser(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
+	if user := strings.TrimPrefix(r.URL.Path, usersEndpoint); len(user) > 0 {
+		handler.handleGetSingleUser(w, r, user, userSession)
 	} else {
-		handler.handleGetAllShelters(w, r, shelterSession)
+		handler.handleGetAllUsers(w, r, userSession)
 	}
 }
 
-func (handler ShelterServiceHandler) handleGetSingleShelter(w http.ResponseWriter, r *http.Request, shelterID string, shelterSession *managers.ShelterSession) {
-	id, _ := strconv.ParseInt(shelterID, 10, 64)
-	shelter, _ := handler.ShelterManager.GetShelter(r.Context(), id)
+func (handler UserServiceHandler) handleGetSingleUser(w http.ResponseWriter, r *http.Request, userID string, userSession *managers.UserSession) {
+	id, _ := strconv.ParseInt(userID, 10, 64)
+	user, _ := handler.UserManager.GetUser(r.Context(), id)
 
 	items, _ := handler.ItemManager.GetItemsForShelter(r.Context(), id)
-	template, _ := handler.ShelterRetriever.RetrieveSingleEntityTemplate()
+	template, _ := handler.UserRetriever.RetrieveSingleEntityTemplate()
 
 	responseObject := make(map[string]interface{}, 0)
-	responseObject["Shelter"] = shelter
+	responseObject["User"] = user
 	responseObject["Items"] = items
-	responseObject["ShelterSession"] = shelterSession
+	responseObject["UserSession"] = userSession
 	template.Execute(w, responseObject)
 }
 
-func (handler ShelterServiceHandler) handleGetAllShelters(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
-	shelters, _ := handler.ShelterManager.GetShelters(r.Context())
+func (handler UserServiceHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
+	users, _ := handler.UserManager.GetUsers(r.Context())
 
-	template, _ := handler.ShelterRetriever.RetrieveAllEntitiesTemplate()
+	template, _ := handler.UserRetriever.RetrieveAllEntitiesTemplate()
 	responseObject := make(map[string]interface{}, 0)
-	responseObject["Shelters"] = shelters
-	responseObject["ShelterSession"] = shelterSession
+	responseObject["Users"] = users
+	responseObject["UserSession"] = userSession
 	template.Execute(w, responseObject)
 }
 
-func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, r *http.Request) {
-	shelterID := strings.TrimPrefix(r.URL.Path, sheltersEndpoint)
+func (handler UserServiceHandler) handleDeleteUser(w http.ResponseWriter, r *http.Request) {
+	userID := strings.TrimPrefix(r.URL.Path, usersEndpoint)
 
-	_, err := handler.ShelterManager.DeleteShelter(r.Context(), shelterID)
+	_, err := handler.UserManager.DeleteUser(r.Context(), userID)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
@@ -184,7 +184,7 @@ func (handler ShelterServiceHandler) handleDeleteShelter(w http.ResponseWriter, 
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ShelterServiceHandler) buildContactInformation(createData map[string]interface{}) *managers.ContactInformation {
+func (handler UserServiceHandler) buildContactInformation(createData map[string]interface{}) *managers.ContactInformation {
 	return &managers.ContactInformation{
 		City:       createData["City"].(string),
 		Country:    createData["Country"].(string),
@@ -195,61 +195,61 @@ func (handler ShelterServiceHandler) buildContactInformation(createData map[stri
 	}
 }
 
-func (handler ShelterServiceHandler) isAuthorized(r *http.Request) (bool, *managers.ShelterSession) {
+func (handler UserServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/")
 	switch r.Method {
 	case http.MethodPost:
 		if cookie == nil {
 			return true, nil
 		}
-		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
-			return err == sql.ErrNoRows, shelterSession
+			return err == sql.ErrNoRows, userSession
 		}
 
-		return shelterSession == nil, shelterSession
+		return userSession == nil, userSession
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:
 		if cookie == nil {
 			return false, nil
 		}
-		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
-			return false, shelterSession
+			return false, userSession
 		}
 
-		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
+		userID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
 		if err != nil {
 			log.Println(err)
-			return false, shelterSession
+			return false, userSession
 		}
 
-		return shelterSession.ShelterID == shelterID, shelterSession
+		return userSession.UserID == userID, userSession
 	case http.MethodGet:
 		var err error
-		shelterSession := &managers.ShelterSession{}
+		userSession := &managers.UserSession{}
 		if cookie != nil {
-			shelterSession, err = handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			userSession, err = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 			if err != nil && err != sql.ErrNoRows {
 				log.Println(err)
-				return false, shelterSession
+				return false, userSession
 			}
 		}
 
 		if pathArray[len(pathArray)-1] == "edit" {
-			shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
+			userID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
 			if err != nil {
 				log.Println(err)
-				return false, shelterSession
+				return false, userSession
 			}
 
-			return shelterSession != nil && shelterSession.ShelterID == shelterID, shelterSession
+			return userSession != nil && userSession.UserID == userID, userSession
 		}
-		return true, shelterSession
+		return true, userSession
 	default:
 		return false, nil
 	}

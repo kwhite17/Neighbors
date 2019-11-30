@@ -17,22 +17,22 @@ import (
 var serviceEndpoint = "/session/"
 
 type LoginServiceHandler struct {
-	ShelterSessionManager *managers.ShelterSessionManager
-	ShelterManager        *managers.ShelterManager
-	LoginRetriever        *retrievers.LoginRetriever
+	UserSessionManager *managers.UserSessionManager
+	UserManager        *managers.UserManager
+	LoginRetriever     *retrievers.LoginRetriever
 }
 
 func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isAuthorized, shelterSession := lsh.isAuthorized(r)
 
-	if isAuthorized && shelterSession != nil && shelterSession.ShelterID > 0 {
-		http.Redirect(w, r, "/", http.StatusFound)
+	if !isAuthorized {
+		w.WriteHeader(http.StatusUnauthorized)
 
 		return
 	}
 
 	tplMap := map[string]interface{}{
-		"ShelterSession": shelterSession,
+		"UserSession": shelterSession,
 	}
 
 	switch r.Method {
@@ -54,7 +54,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			w.WriteHeader(http.StatusInternalServerError)
 		}
 
-		_, err = lsh.ShelterSessionManager.DeleteShelterSession(r.Context(), cookie.Value)
+		_, err = lsh.UserSessionManager.DeleteUserSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -65,7 +65,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		loginData := make(map[string]string, 0)
 		err := json.NewDecoder(r.Body).Decode(&loginData)
 
-		shelter, err := lsh.ShelterManager.GetPasswordForUsername(r.Context(), loginData["Name"])
+		shelter, err := lsh.UserManager.GetPasswordForUsername(r.Context(), loginData["Name"])
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -79,7 +79,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		sessionKey, err := lsh.ShelterSessionManager.WriteShelterSession(r.Context(), shelter.ID, loginData["Name"])
+		sessionKey, err := lsh.UserSessionManager.WriteUserSession(r.Context(), shelter.ID, loginData["Name"])
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -95,9 +95,9 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 }
 
-func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.ShelterSession) {
+func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
-	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, sheltersEndpoint), "/"), "/")
+	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/"), "/")
 
 	switch r.Method {
 	case http.MethodPost:
@@ -105,7 +105,7 @@ func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.Sh
 			return true, nil
 		}
 
-		shelterSession, err := lsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		shelterSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 		if err != nil {
 			log.Println(err)
@@ -120,27 +120,20 @@ func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.Sh
 			return false, nil
 		}
 
-		shelterSession, err := lsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		shelterSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 		if err != nil {
 			log.Println(err)
 			return false, shelterSession
 		}
 
-		shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
-
-		if err != nil {
-			log.Println(err)
-			return false, shelterSession
-		}
-
-		return shelterSession.ShelterID == shelterID, shelterSession
+		return shelterSession != nil && shelterSession.SessionKey == cookie.Value, shelterSession
 	case http.MethodGet:
 		var err error
-		shelterSession := &managers.ShelterSession{}
+		shelterSession := &managers.UserSession{}
 
 		if cookie != nil {
-			shelterSession, err = lsh.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			shelterSession, err = lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 
 			if err != nil && err != sql.ErrNoRows {
 				log.Println(err)
@@ -156,7 +149,7 @@ func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.Sh
 				return false, shelterSession
 			}
 
-			return shelterSession != nil && shelterSession.ShelterID == shelterID, shelterSession
+			return shelterSession != nil && shelterSession.UserID == shelterID, shelterSession
 		}
 		return true, shelterSession
 	default:
