@@ -1,72 +1,72 @@
 {{define "main-content"}}
-    <div class="card">
-        <div class="card-header">
-            Shelter Info
-        </div>
-        <div class="card-body">
-            <h5 class="card-title">{{.Shelter.Name}}</h5>
-            <h6 class="card-subtitle text-muted">{{.Shelter.Street}}, {{.Shelter.City}}, {{.Shelter.State}},
-                {{.Shelter.Country}}, {{.Shelter.PostalCode}}</h6>
-            <br>
-            <a href="./{{.Shelter.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
-            <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
-        </div>
-        <div class="card-footer text-muted">
-            <a href="/shelters/" class="card-link">View All Shelters</a>
-        </div>
+<div class="card">
+    <div class="card-header">
+        Shelter Info
     </div>
-    <table class="table table-striped">
-        <thead class="thead-dark">
-            <th>
-                Category
-            </th>
-            <th>
-                Gender
-            </th>
-            <th>
-                Size
-            </th>
-            <th>
-                Quantity
-            </th>
-            <th>
-                Status
-            </th>
-            <th>
-                <a class="btn btn-small btn-outline-primary" role="button" href="/items/new">New Item</a>
-            </th>
-        </thead>
-        <tbody>
-            {{range $index, $element := .Items }}
-                <td>{{ $element.Category }}</td>
-                <td>{{ $element.Gender }}</td>
-                <td>{{ $element.Size }}</td>
-                <td>{{ $element.Quantity }}</td>
-                <td>{{ $element.Status }}</td>
-                <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
-            {{end}}
-        </tbody>
-    </table>
+    <div class="card-body">
+        <h5 class="card-title">{{.User.Name}}</h5>
+        <h6 class="card-subtitle text-muted">{{.User.Street}}, {{.User.City}}, {{.User.State}},
+            {{.User.Country}}, {{.User.PostalCode}}</h6>
+        <br>
+        <a href="./{{.User.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+        <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
+    </div>
+    <div class="card-footer text-muted">
+        <a href="/shelters/" class="card-link">View All Shelters</a>
+    </div>
+</div>
+<table class="table table-striped">
+    <thead class="thead-dark">
+        <th>
+            Category
+        </th>
+        <th>
+            Gender
+        </th>
+        <th>
+            Size
+        </th>
+        <th>
+            Quantity
+        </th>
+        <th>
+            Status
+        </th>
+        <th>
+            <a class="btn btn-small btn-outline-primary" role="button" href="/items/new">New Item</a>
+        </th>
+    </thead>
+    <tbody>
+        {{range $index, $element := .Items }}
+        <td>{{ $element.Category }}</td>
+        <td>{{ $element.Gender }}</td>
+        <td>{{ $element.Size }}</td>
+        <td>{{ $element.Quantity }}</td>
+        <td>{{ $element.Status }}</td>
+        <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
+        {{end}}
+    </tbody>
+</table>
 {{end}}
 
 {{define "script-content"}}
-    <script type="text/javascript">
-        var editShelter = function () {
-            window.location = window.location + '/edit';
+<script type="text/javascript">
+    var editShelter = function () {
+        window.location = window.location + '/edit';
+    };
+
+    var deleteShelter = function () {
+        var req = new XMLHttpRequest();
+        req.open("DELETE", window.location)
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = window.location.origin + '/shelters';
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to delete shelter!");
+            }
         };
 
-        var deleteShelter = function () {
-            var req = new XMLHttpRequest();
-            req.open("DELETE", window.location)
-            req.onreadystatechange = function () {
-                if (req.readyState === 4 && req.status === 204) {
-                    window.location = window.location.origin + '/shelters';
-                } else if (req.readyState === 4 && req.status !== 204) {
-                    alert("Failed to delete shelter!");
-                }
-            };
-
-            req.send()
-        };
-    </script>
+        req.send()
+    };
+</script>
 {{end}}
