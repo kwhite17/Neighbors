@@ -14,12 +14,14 @@
     </thead>
     <tbody>
         {{range $index, $element := .Items }}
-        <td>{{ $element.Category }}</td>
-        <td>{{ $element.Gender }}</td>
-        <td>{{ $element.Size }}</td>
-        <td>{{ $element.Quantity }}</td>
-        <td>{{ $element.Status }}</td>
-        <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
+        <tr>
+            <td>{{ $element.Category }}</td>
+            <td>{{ $element.Gender }}</td>
+            <td>{{ $element.Size }}</td>
+            <td>{{ $element.Quantity }}</td>
+            <td>{{ $element.Status }}</td>
+            <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
+        </tr>
         {{end}}
     </tbody>
 </table>
