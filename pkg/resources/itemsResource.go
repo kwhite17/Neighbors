@@ -16,20 +16,20 @@ import (
 var itemsEndpoint = "/items/"
 
 type ItemServiceHandler struct {
-	ItemManager           *managers.ItemManager
-	ItemRetriever         *retrievers.ItemRetriever
-	ShelterSessionManager *managers.ShelterSessionManager
+	ItemManager        *managers.ItemManager
+	ItemRetriever      *retrievers.ItemRetriever
+	UserSessionManager *managers.UserSessionManager
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	isAuthorized, shelterSession := handler.isAuthorized(r)
+	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {
 		w.WriteHeader(http.StatusUnauthorized)
 		return
 	}
 
 	tplMap := map[string]interface{}{
-		"ShelterSession": shelterSession,
+		"UserSession": userSession,
 	}
 
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
@@ -70,16 +70,16 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		tplMap["Item"] = item
 		t.Execute(w, tplMap)
 	default:
-		handler.requestMethodHandler(w, r, shelterSession)
+		handler.requestMethodHandler(w, r, userSession)
 	}
 }
 
-func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
+func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	switch r.Method {
 	case http.MethodPost:
-		handler.handleCreateItem(w, r, shelterSession)
+		handler.handleCreateItem(w, r, userSession)
 	case http.MethodGet:
-		handler.handleGetItem(w, r, shelterSession)
+		handler.handleGetItem(w, r, userSession)
 	case http.MethodDelete:
 		handler.handleDeleteItem(w, r)
 	case http.MethodPut:
@@ -89,7 +89,7 @@ func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r 
 	}
 }
 
-func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
+func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	item := &managers.Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
@@ -98,39 +98,39 @@ func (handler ItemServiceHandler) handleCreateItem(w http.ResponseWriter, r *htt
 		return
 	}
 
-	item.ShelterID = shelterSession.ShelterID
+	item.ShelterID = userSession.UserID
 	itemID, _ := handler.ItemManager.WriteItem(r.Context(), item)
 	item.ID = itemID
 
 	json.NewEncoder(w).Encode(item)
 }
 
-func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
+func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	if item := strings.TrimPrefix(r.URL.Path, itemsEndpoint); len(item) > 0 {
-		handler.handleGetSingleItem(w, r, item, shelterSession)
+		handler.handleGetSingleItem(w, r, item, userSession)
 	} else {
-		handler.handleGetAllItems(w, r, shelterSession)
+		handler.handleGetAllItems(w, r, userSession)
 	}
 }
 
-func (handler ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string, shelterSession *managers.ShelterSession) {
+func (handler ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string, userSession *managers.UserSession) {
 	id, _ := strconv.ParseInt(itemID, 10, 64)
 	item, _ := handler.ItemManager.GetItem(r.Context(), id)
 
 	template, _ := handler.ItemRetriever.RetrieveSingleEntityTemplate()
 	responseObject := make(map[string]interface{}, 0)
 	responseObject["Item"] = item
-	responseObject["ShelterSession"] = shelterSession
+	responseObject["UserSession"] = userSession
 	template.Execute(w, responseObject)
 }
 
-func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request, shelterSession *managers.ShelterSession) {
+func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	items, _ := handler.ItemManager.GetItems(r.Context())
 
 	template, _ := handler.ItemRetriever.RetrieveAllEntitiesTemplate()
 	responseObject := make(map[string]interface{}, 0)
 	responseObject["Items"] = items
-	responseObject["ShelterSession"] = shelterSession
+	responseObject["UserSession"] = userSession
 	template.Execute(w, responseObject)
 }
 
@@ -166,7 +166,7 @@ func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *htt
 	w.WriteHeader(http.StatusNoContent)
 }
 
-func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers.ShelterSession) {
+func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
 	switch r.Method {
@@ -175,17 +175,17 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 			return false, nil
 		}
 
-		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
 			return false, nil
 		}
 
-		return time.Now().After(cookie.Expires), shelterSession
+		return time.Now().After(cookie.Expires), userSession
 	case http.MethodPut:
 		fallthrough
 	case http.MethodDelete:
-		shelterSession, err := handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 		if err != nil {
 			log.Println(err)
 			return false, nil
@@ -203,15 +203,15 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 			return false, nil
 		}
 
-		return item.ShelterID == shelterSession.ShelterID, nil
+		return item.ShelterID == userSession.UserID, nil
 	case http.MethodGet:
 		var err error
-		shelterSession := &managers.ShelterSession{}
+		userSession := &managers.UserSession{}
 		if cookie != nil {
-			shelterSession, err = handler.ShelterSessionManager.GetShelterSession(r.Context(), cookie.Value)
+			userSession, err = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 			if err != nil && err != sql.ErrNoRows {
 				log.Println(err)
-				return false, shelterSession
+				return false, userSession
 			}
 		}
 
@@ -219,18 +219,18 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 			itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
 			if err != nil {
 				log.Println(err)
-				return false, shelterSession
+				return false, userSession
 			}
 
 			item, err := handler.ItemManager.GetItem(r.Context(), itemID)
 			if err != nil {
 				log.Println(err)
-				return false, shelterSession
+				return false, userSession
 			}
 
-			return item.ShelterID == shelterSession.ShelterID, shelterSession
+			return item.ShelterID == userSession.UserID, userSession
 		}
-		return true, shelterSession
+		return true, userSession
 	default:
 		return false, nil
 	}
