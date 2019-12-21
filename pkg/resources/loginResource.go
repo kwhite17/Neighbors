@@ -79,7 +79,8 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 			return
 		}
 
-		sessionKey, err := lsh.UserSessionManager.WriteUserSession(r.Context(), shelter.ID, loginData["Name"])
+		userType, err := strconv.Atoi(loginData["UserType"])
+		sessionKey, err := lsh.UserSessionManager.WriteUserSession(r.Context(), shelter.ID, managers.UserType(userType))
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)

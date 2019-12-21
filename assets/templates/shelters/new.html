@@ -2,8 +2,19 @@
 <h1>Shelter Registration</h1>
 <br>
 <form id="createForm">
+    <fieldset class="form-group">
+        <legend>Account to Create</legend>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="type" id="userTypeShelter" value=1>
+            <label class="form-check-label" for="userType">Shelter</label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" name="type" id="userTypeSamaritan" value=2>
+            <label class="form-check-label" for="userType">Samaritan</label>
+        </div>
+    </fieldset>
     <div class="form-group">
-        <label for="shelterName">Shelter Name</label>
+        <label for="shelterName">User Name (or Shelter Name)</label>
         <input type="text" class="form-control" name="name" placeholder="Shelter Name" id="shelterName">
     </div>
     <div class="form-group">
@@ -30,7 +41,7 @@
         <label for="shelterCountry">Country</label>
         <input type="text" class="form-control" name="country" placeholder="Country" id="shelterCountry">
     </div>
-    <button type="button" class="btn btn-primary" onclick="createShelter()">Register Shelter</button>
+    <button type="button" class="btn btn-primary" onclick="createShelter()">Register User</button>
 </form>
 {{end}}
 
@@ -48,6 +59,7 @@
             State: formElements.namedItem('state').value,
             PostalCode: formElements.namedItem('postalCode').value,
             Country: formElements.namedItem('country').value,
+            UserType: formElements.namedItem('type').value,
         };
 
         req.open("POST", window.location.origin + '/shelters/');

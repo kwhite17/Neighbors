@@ -108,7 +108,7 @@ func (handler UserServiceHandler) handleCreateUser(w http.ResponseWriter, r *htt
 	}
 
 	user.ID = userID
-	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, user.Name)
+	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, user.UserType)
 	if err != nil {
 		handler.UserManager.DeleteUser(r.Context(), userID)
 		log.Println(err)
