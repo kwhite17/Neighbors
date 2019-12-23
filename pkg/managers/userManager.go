@@ -21,6 +21,11 @@ type UserManager struct {
 
 type UserType int
 
+const (
+	SHELTER   UserType = 1
+	SAMARITAN UserType = 2
+)
+
 type ContactInformation struct {
 	City       string
 	Country    string
@@ -36,9 +41,6 @@ type User struct {
 	UserType UserType
 	*ContactInformation
 }
-
-const SHELTER UserType = 1
-const SAMARITAN UserType = 2
 
 func (um *UserManager) GetUser(ctx context.Context, id interface{}) (*User, error) {
 	result, err := um.Datasource.ExecuteBatchReadQuery(ctx, getSingleUserQuery, []interface{}{id})

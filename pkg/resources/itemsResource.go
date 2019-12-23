@@ -21,6 +21,12 @@ type ItemServiceHandler struct {
 	UserSessionManager *managers.UserSessionManager
 }
 
+//maps can't be constants smdh
+var USER_TYPE_TO_VALID_ITEM_UPDATE = map[managers.UserType][]managers.ItemStatus{
+	managers.SHELTER:   []managers.ItemStatus{managers.CREATED, managers.RECEIVED},
+	managers.SAMARITAN: []managers.ItemStatus{managers.CLAIMED, managers.DELIVERED},
+}
+
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {

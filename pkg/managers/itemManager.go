@@ -28,6 +28,15 @@ type Item struct {
 	Status    string
 }
 
+type ItemStatus int
+
+const (
+	CREATED   ItemStatus = 1
+	CLAIMED   ItemStatus = 2
+	DELIVERED ItemStatus = 3
+	RECEIVED  ItemStatus = 4
+)
+
 func (im *ItemManager) GetItem(ctx context.Context, id interface{}) (*Item, error) {
 	result, err := im.Datasource.ExecuteBatchReadQuery(ctx, getSingleItemQuery, []interface{}{id})
 	if err != nil {
