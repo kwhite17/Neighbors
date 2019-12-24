@@ -15,7 +15,7 @@ var testGender = "testGender"
 var testQuantity = int8(rand.Int() % 127)
 var testShelterID = rand.Int63()
 var testSize = "testSize"
-var testStatus = "testStatus"
+var testStatus = CREATED
 
 func initItemManager() *ItemManager {
 	dbToClose = database.InitDatabase(database.SQLITE3)
@@ -115,6 +115,43 @@ func TestCanReadItsOwnItemUpdate(t *testing.T) {
 	}
 
 	createdItem.Size = "L"
+	err = manager.UpdateItem(context.Background(), createdItem)
+	if err != nil {
+		t.Error(err)
+	}
+
+	finalItem, err := manager.GetItem(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(finalItem, createdItem) {
+		t.Errorf("Expected %v to equal %v", finalItem, createdItem)
+	}
+}
+
+func TestCanReadSamaritanClaim(t *testing.T) {
+	manager := initItemManager()
+	defer cleanDatabase()
+	testItem := generateItem()
+
+	id, err := manager.WriteItem(context.Background(), testItem)
+	if err != nil {
+		t.Error(err)
+	}
+	testItem.ID = id
+
+	createdItem, err := manager.GetItem(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(testItem, createdItem) {
+		t.Errorf("Expected %v to equal %v", createdItem, testItem)
+	}
+
+	samaritanID := rand.Int63()
+	createdItem.SamaritanID = samaritanID
 	err = manager.UpdateItem(context.Background(), createdItem)
 	if err != nil {
 		t.Error(err)

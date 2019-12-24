@@ -3,29 +3,31 @@ package managers
 import (
 	"context"
 	"database/sql"
+	"reflect"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 )
 
 var createItemQuery = "INSERT INTO items (Category, Gender, Quantity, ShelterID, Size, Status) VALUES ($1, $2, $3, $4, $5, $6)"
 var deleteItemQuery = "DELETE FROM items WHERE id=$1"
-var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status FROM items WHERE ID=$1"
-var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items"
-var updateItemQuery = "UPDATE items SET Category = $1, Gender = $2, Quantity = $3, ShelterID = $4, Size = $5, Status = $6 WHERE ID = $7"
-var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, Size, Status from items WHERE ShelterID = $1"
+var getSingleItemQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, SamaritanID, Size, Status FROM items WHERE ID=$1"
+var getAllItemsQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, SamaritanID, Size, Status from items"
+var updateItemQuery = "UPDATE items SET Category = $1, Gender = $2, Quantity = $3, ShelterID = $4, SamaritanID = $5, Size = $6, Status = $7 WHERE ID = $8"
+var getItemsForShelterQuery = "SELECT ID, Category, Gender, Quantity, ShelterID, SamaritanID, Size, Status from items WHERE ShelterID = $1"
 
 type ItemManager struct {
 	Datasource database.Datasource
 }
 
 type Item struct {
-	ID        int64
-	Category  string
-	Gender    string
-	Quantity  int8
-	ShelterID int64
-	Size      string
-	Status    string
+	ID          int64
+	Category    string
+	Gender      string
+	Quantity    int8
+	ShelterID   int64
+	SamaritanID int64
+	Size        string
+	Status      ItemStatus
 }
 
 type ItemStatus int
@@ -83,7 +85,7 @@ func (im *ItemManager) WriteItem(ctx context.Context, item *Item) (int64, error)
 }
 
 func (im *ItemManager) UpdateItem(ctx context.Context, item *Item) error {
-	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.Size, item.Status, item.ID}
+	values := []interface{}{item.Category, item.Gender, item.Quantity, item.ShelterID, item.SamaritanID, item.Size, item.Status, item.ID}
 	_, err := im.Datasource.ExecuteWriteQuery(ctx, updateItemQuery, values, true)
 	return err
 }
@@ -104,12 +106,16 @@ func (im *ItemManager) buildItems(result *sql.Rows) ([]*Item, error) {
 		var gender string
 		var quantity int8
 		var shelterID int64
+		var samaritan interface{}
 		var size string
-		var status string
-		if err := result.Scan(&id, &category, &gender, &quantity, &shelterID, &size, &status); err != nil {
+		var status ItemStatus
+		if err := result.Scan(&id, &category, &gender, &quantity, &shelterID, &samaritan, &size, &status); err != nil {
 			return nil, err
 		}
 		item := Item{ID: id, Category: category, Gender: gender, Quantity: quantity, ShelterID: shelterID, Size: size, Status: status}
+		if samaritan != nil {
+			item.SamaritanID = reflect.ValueOf(samaritan).Int()
+		}
 		response = append(response, &item)
 	}
 	return response, nil

@@ -1,7 +1,6 @@
 package resources
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
@@ -23,8 +22,8 @@ type ItemServiceHandler struct {
 
 //maps can't be constants smdh
 var USER_TYPE_TO_VALID_ITEM_UPDATE = map[managers.UserType][]managers.ItemStatus{
-	managers.SHELTER:   []managers.ItemStatus{managers.CREATED, managers.RECEIVED},
-	managers.SAMARITAN: []managers.ItemStatus{managers.CLAIMED, managers.DELIVERED},
+	managers.SHELTER:   []managers.ItemStatus{managers.CREATED, managers.CLAIMED, managers.DELIVERED, managers.RECEIVED},
+	managers.SAMARITAN: []managers.ItemStatus{managers.CREATED, managers.CLAIMED, managers.DELIVERED},
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -175,69 +174,78 @@ func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *htt
 func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
-	switch r.Method {
-	case http.MethodPost:
-		if cookie == nil {
-			return false, nil
-		}
 
-		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-		if err != nil {
-			log.Println(err)
-			return false, nil
-		}
+	if r.Method == http.MethodGet && pathArray[len(pathArray)-1] != "edit" {
+		return true, nil
+	}
 
-		return time.Now().After(cookie.Expires), userSession
-	case http.MethodPut:
-		fallthrough
-	case http.MethodDelete:
-		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-		if err != nil {
-			log.Println(err)
-			return false, nil
-		}
-
-		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
-		if err != nil {
-			log.Println(err)
-			return false, nil
-		}
-
-		item, err := handler.ItemManager.GetItem(r.Context(), itemID)
-		if err != nil {
-			log.Println(err)
-			return false, nil
-		}
-
-		return item.ShelterID == userSession.UserID, nil
-	case http.MethodGet:
-		var err error
-		userSession := &managers.UserSession{}
-		if cookie != nil {
-			userSession, err = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-			if err != nil && err != sql.ErrNoRows {
-				log.Println(err)
-				return false, userSession
-			}
-		}
-
-		if pathArray[len(pathArray)-1] == "edit" {
-			itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
-			if err != nil {
-				log.Println(err)
-				return false, userSession
-			}
-
-			item, err := handler.ItemManager.GetItem(r.Context(), itemID)
-			if err != nil {
-				log.Println(err)
-				return false, userSession
-			}
-
-			return item.ShelterID == userSession.UserID, userSession
-		}
-		return true, userSession
-	default:
+	if time.Now().After(cookie.Expires) {
 		return false, nil
 	}
+
+	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	if err != nil {
+		log.Println(err)
+		return false, userSession
+	}
+
+	if r.Method == http.MethodPost {
+		return isUserAuthorized(userSession, nil, http.MethodPost), userSession
+	}
+
+	itemID, err := strconv.ParseInt(pathArray[getItemIDPathIndex(pathArray, r.Method)], 10, strconv.IntSize)
+	if err != nil {
+		log.Println(err)
+		return false, userSession
+	}
+
+	item, err := handler.ItemManager.GetItem(r.Context(), itemID)
+	if err != nil {
+		log.Println(err)
+		return false, userSession
+	}
+
+	return isUserAuthorized(userSession, item, r.Method), userSession
+}
+
+func isUserAuthorized(userSession *managers.UserSession, item *managers.Item, httpMethod string) bool {
+	switch httpMethod {
+	case http.MethodGet:
+		return isShelterAuthorized(userSession, item) || isSamaritanAuthorized(userSession, item)
+	case http.MethodPost:
+		return userSession != nil && userSession.UserType == managers.SHELTER
+	case http.MethodDelete:
+		return isShelterAuthorized(userSession, item)
+	case http.MethodPut:
+		switch item.Status {
+		case managers.CREATED:
+			return isShelterAuthorized(userSession, item) || (userSession.UserType == managers.SAMARITAN && item.SamaritanID <= 0)
+		case managers.CLAIMED:
+			fallthrough
+		case managers.DELIVERED:
+			return isShelterAuthorized(userSession, item) || isSamaritanAuthorized(userSession, item)
+		case managers.RECEIVED:
+			return false
+		default:
+			return false
+		}
+	default:
+		return false
+	}
+}
+
+func isShelterAuthorized(userSession *managers.UserSession, item *managers.Item) bool {
+	return item.ShelterID == userSession.UserID && userSession.UserType == managers.SHELTER
+}
+
+func isSamaritanAuthorized(userSession *managers.UserSession, item *managers.Item) bool {
+	return item.SamaritanID == userSession.UserID && userSession.UserType == managers.SAMARITAN
+}
+
+func getItemIDPathIndex(pathArray []string, method string) int {
+	pathArraySize := len(pathArray)
+	if method == http.MethodGet {
+		return pathArraySize - 2
+	}
+	return pathArraySize - 1
 }
