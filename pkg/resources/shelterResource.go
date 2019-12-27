@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 
@@ -108,7 +109,8 @@ func (handler UserServiceHandler) handleCreateUser(w http.ResponseWriter, r *htt
 	}
 
 	user.ID = userID
-	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, user.UserType)
+	userType, err := strconv.Atoi(reflect.ValueOf(createData["UserType"]).String())
+	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, managers.UserType(userType))
 	if err != nil {
 		handler.UserManager.DeleteUser(r.Context(), userID)
 		log.Println(err)

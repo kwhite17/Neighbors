@@ -20,12 +20,6 @@ type ItemServiceHandler struct {
 	UserSessionManager *managers.UserSessionManager
 }
 
-//maps can't be constants smdh
-var USER_TYPE_TO_VALID_ITEM_UPDATE = map[managers.UserType][]managers.ItemStatus{
-	managers.SHELTER:   []managers.ItemStatus{managers.CREATED, managers.CLAIMED, managers.DELIVERED, managers.RECEIVED},
-	managers.SAMARITAN: []managers.ItemStatus{managers.CREATED, managers.CLAIMED, managers.DELIVERED},
-}
-
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {
@@ -119,10 +113,24 @@ func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.R
 }
 
 func (handler ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string, userSession *managers.UserSession) {
-	id, _ := strconv.ParseInt(itemID, 10, 64)
-	item, _ := handler.ItemManager.GetItem(r.Context(), id)
+	id, err := strconv.ParseInt(itemID, 10, 64)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
 
-	template, _ := handler.ItemRetriever.RetrieveSingleEntityTemplate()
+	item, err := handler.ItemManager.GetItem(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
+	template, err := handler.ItemRetriever.RetrieveSingleEntityTemplate()
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+	}
+
 	responseObject := make(map[string]interface{}, 0)
 	responseObject["Item"] = item
 	responseObject["UserSession"] = userSession
@@ -179,10 +187,6 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 		return true, nil
 	}
 
-	if time.Now().After(cookie.Expires) {
-		return false, nil
-	}
-
 	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
 	if err != nil {
 		log.Println(err)
@@ -209,9 +213,19 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 }
 
 func isUserAuthorized(userSession *managers.UserSession, item *managers.Item, httpMethod string) bool {
+	if userSession == nil {
+		return false
+	}
+
+	if time.Now().After(time.Unix(userSession.LoginTime+24*7*3600, 0)) {
+		return false
+	}
+
 	switch httpMethod {
 	case http.MethodGet:
-		return isShelterAuthorized(userSession, item) || isSamaritanAuthorized(userSession, item)
+		return isShelterAuthorized(userSession, item) ||
+			isSamaritanAuthorized(userSession, item) ||
+			(userSession.UserType == managers.SAMARITAN && item.SamaritanID <= 0)
 	case http.MethodPost:
 		return userSession != nil && userSession.UserType == managers.SHELTER
 	case http.MethodDelete:
@@ -225,7 +239,7 @@ func isUserAuthorized(userSession *managers.UserSession, item *managers.Item, ht
 		case managers.DELIVERED:
 			return isShelterAuthorized(userSession, item) || isSamaritanAuthorized(userSession, item)
 		case managers.RECEIVED:
-			return false
+			fallthrough
 		default:
 			return false
 		}

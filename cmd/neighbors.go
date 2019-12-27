@@ -31,8 +31,8 @@ func main() {
 	userManager := &managers.UserManager{Datasource: neighborsDatasource}
 	itemManager := &managers.ItemManager{Datasource: neighborsDatasource}
 	userSessionManager := &managers.UserSessionManager{Datasource: neighborsDatasource}
-	mux := http.NewServeMux()
 
+	mux := http.NewServeMux()
 	mux.Handle("/shelters/", buildUserServiceHandler(userManager, userSessionManager, itemManager))
 	mux.Handle("/items/", buildItemServiceHandler(userSessionManager, itemManager))
 	mux.Handle("/session/", buildLoginServiceHandler(userManager, userSessionManager))

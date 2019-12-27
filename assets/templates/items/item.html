@@ -1,5 +1,4 @@
 {{define "main-content"}}
-    <input type="hidden" id="associatedShelter" value="{{.Item.ShelterID}}" />
     <div class="card">
         <div class="card-header">Item Detail</div>
         <div class="card-body">
@@ -7,7 +6,7 @@
             <p class="card-text">Quantity: {{.Item.Quantity}}</p>
             <p class="card-text">Gender: {{.Item.Gender}}</p>
             <p class="card-text">Size: {{.Item.Size}}</p>
-            <p class="card-text">Status: {{.Item.Status}}</p>
+            <p class="card-text">Status: {{ statusAsString .Item.Status}}</p>
             <a href="./{{.Item.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
             <a href="/shelters/{{.Item.ShelterID}}" role="button" class="btn btn-secondary card-link">View Shelter</a>
             <button onclick="deleteItem()" class="btn btn-danger card-link">Delete</button>
@@ -20,11 +19,6 @@
 
 {{define "script-content"}}
     <script type="text/javascript">
-        var viewShelter = function () {
-            var shelterId = doucment.getElementById('associatedShelter').value;
-            window.location = window.location + '/shelters/' + shelterId;
-        };
-
         var deleteItem = function () {
             var req = new XMLHttpRequest();
             req.open("DELETE", window.location)

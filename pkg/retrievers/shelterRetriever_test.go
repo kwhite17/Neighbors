@@ -29,7 +29,7 @@ func TestRenderSingleShelterTemplate(t *testing.T) {
 	}
 
 	tmpl.Execute(testBuffer, map[string]interface{}{
-		"Shelter": testShelter,
+		"User":           testShelter,
 		"ShelterSession": nil,
 	})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
@@ -81,7 +81,7 @@ func TestRenderAllSheltersTemplate(t *testing.T) {
 	}
 
 	tmpl.Execute(testBuffer, map[string]interface{}{
-		"Shelters": []*managers.Shelter{testShelter},
+		"Users":          []*managers.User{testShelter},
 		"ShelterSession": nil,
 	})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
@@ -97,7 +97,7 @@ func TestRenderAllSheltersTemplate(t *testing.T) {
 	}
 }
 
-func generateShelter() *managers.Shelter {
+func generateShelter() *managers.User {
 	contactInfo := &managers.ContactInformation{
 		City:       testCity,
 		Country:    testCountry,
@@ -107,5 +107,5 @@ func generateShelter() *managers.Shelter {
 		Street:     testStreet,
 	}
 
-	return &managers.Shelter{ContactInformation: contactInfo}
+	return &managers.User{ContactInformation: contactInfo}
 }

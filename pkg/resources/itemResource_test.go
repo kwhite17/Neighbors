@@ -1,16 +1,14 @@
 package resources
 
-import "testing"
+import (
+	"math/rand"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
 
-import "net/http/httptest"
-
-import "net/http"
-
-import "time"
-
-import "github.com/kwhite17/Neighbors/pkg/managers"
-
-import "math/rand"
+	"github.com/kwhite17/Neighbors/pkg/managers"
+)
 
 func TestCanAlwaysViewItems(t *testing.T) {
 	ish := &ItemServiceHandler{}
@@ -26,41 +24,16 @@ func TestCanAlwaysViewItems(t *testing.T) {
 	}
 }
 
-func TestCanNeverAuthorizedUserWithExpiredCookieForEdits(t *testing.T) {
-	ish := &ItemServiceHandler{}
-	req := httptest.NewRequest(http.MethodGet, "/items/1/edit", nil)
-	cookie := &http.Cookie{Expires: time.Unix(0, 0), Name: "NeighborsAuth"}
-	req.AddCookie(cookie)
-
-	isAuthorized, userSession := ish.isAuthorized(req)
-	if isAuthorized {
+func TestCanNeverAuthorizeUserWithExpiredCookie(t *testing.T) {
+	userSession := &managers.UserSession{LoginTime: 0}
+	if isUserAuthorized(userSession, nil, http.MethodGet) {
 		t.Error("User should never be authorized for edits with expired cookie")
-	}
-
-	if userSession != nil {
-		t.Error("Unauthorized user should have no corresponding session")
-	}
-}
-
-func TestCanNeverAuthorizedUserWithExpiredCookieForWrites(t *testing.T) {
-	ish := &ItemServiceHandler{}
-	req := httptest.NewRequest(http.MethodPut, "/items/1", nil)
-	cookie := &http.Cookie{Expires: time.Unix(0, 0), Name: "NeighborsAuth"}
-	req.AddCookie(cookie)
-
-	isAuthorized, userSession := ish.isAuthorized(req)
-	if isAuthorized {
-		t.Error("User should never be authorized for edits with expired cookie")
-	}
-
-	if userSession != nil {
-		t.Error("Unauthorized user should have no corresponding session")
 	}
 }
 
 func TestCanLoadEditItemPageWhenAuthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID}
 
 	if !isUserAuthorized(userSession, item, http.MethodGet) {
@@ -70,7 +43,7 @@ func TestCanLoadEditItemPageWhenAuthorizedShelter(t *testing.T) {
 
 func TestCanLoadEditItemPageWhenAuthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID}
 
 	if !isUserAuthorized(userSession, item, http.MethodGet) {
@@ -80,7 +53,7 @@ func TestCanLoadEditItemPageWhenAuthorizedSamaritan(t *testing.T) {
 
 func TestCannotLoadEditItemPageWhenUnauthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID - 1}
 
 	if isUserAuthorized(userSession, item, http.MethodGet) {
@@ -90,7 +63,7 @@ func TestCannotLoadEditItemPageWhenUnauthorizedSamaritan(t *testing.T) {
 
 func TestCannotLoadEditItemPageWhenUnauthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID - 1}
 
 	if isUserAuthorized(userSession, item, http.MethodGet) {
@@ -105,14 +78,14 @@ func TestCannotCreateItemWhenNoUserSessionPresent(t *testing.T) {
 }
 
 func TestCannotCreateItemWhenSamaritanUserSessionPresent(t *testing.T) {
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, LoginTime: time.Now().Unix()}
 	if isUserAuthorized(userSession, nil, http.MethodPost) {
 		t.Error("Expected samaritan to be unauthorized to create items")
 	}
 }
 
 func TestCanCreateItemWhenShelterUserSessionPresent(t *testing.T) {
-	userSession := &managers.UserSession{UserType: managers.SHELTER}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, LoginTime: time.Now().Unix()}
 	if !isUserAuthorized(userSession, nil, http.MethodPost) {
 		t.Error("Expected shelter to be authorized to create items")
 	}
@@ -120,7 +93,7 @@ func TestCanCreateItemWhenShelterUserSessionPresent(t *testing.T) {
 
 func TestCanDeleteItemWhenAuthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID}
 
 	if !isUserAuthorized(userSession, item, http.MethodDelete) {
@@ -130,7 +103,7 @@ func TestCanDeleteItemWhenAuthorizedShelter(t *testing.T) {
 
 func TestCannotDeleteItemWhenUnauthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID}
 
 	if isUserAuthorized(userSession, item, http.MethodDelete) {
@@ -140,7 +113,7 @@ func TestCannotDeleteItemWhenUnauthorizedSamaritan(t *testing.T) {
 
 func TestCannotDeleteWhenUnauthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID - 1}
 
 	if isUserAuthorized(userSession, item, http.MethodDelete) {
@@ -168,7 +141,7 @@ func TestCannotUpdateItemThatHasBeenReceived(t *testing.T) {
 
 func TestCanUpdateDeliveredItemWhenAuthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID, Status: managers.DELIVERED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
@@ -178,7 +151,7 @@ func TestCanUpdateDeliveredItemWhenAuthorizedShelter(t *testing.T) {
 
 func TestCanUpdateDeliveredWhenAuthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID, Status: managers.DELIVERED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
@@ -188,7 +161,7 @@ func TestCanUpdateDeliveredWhenAuthorizedSamaritan(t *testing.T) {
 
 func TestCannotUpdateDelieveredItemWhenUnauthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID - 1, Status: managers.DELIVERED}
 
 	if isUserAuthorized(userSession, item, http.MethodPut) {
@@ -198,7 +171,7 @@ func TestCannotUpdateDelieveredItemWhenUnauthorizedSamaritan(t *testing.T) {
 
 func TestCannotUpdateDelieveredItemWhenUnauthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID - 1, Status: managers.DELIVERED}
 
 	if isUserAuthorized(userSession, item, http.MethodPut) {
@@ -208,7 +181,7 @@ func TestCannotUpdateDelieveredItemWhenUnauthorizedShelter(t *testing.T) {
 
 func TestCanUpdateClaimedItemWhenAuthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID, Status: managers.CLAIMED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
@@ -218,7 +191,7 @@ func TestCanUpdateClaimedItemWhenAuthorizedShelter(t *testing.T) {
 
 func TestCanUpdateClaimedWhenAuthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID, Status: managers.CLAIMED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
@@ -228,7 +201,7 @@ func TestCanUpdateClaimedWhenAuthorizedSamaritan(t *testing.T) {
 
 func TestCannotUpdateClaimedItemWhenUnauthorizedSamaritan(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{SamaritanID: samaritanID - 1, Status: managers.CLAIMED}
 
 	if isUserAuthorized(userSession, item, http.MethodPut) {
@@ -238,7 +211,7 @@ func TestCannotUpdateClaimedItemWhenUnauthorizedSamaritan(t *testing.T) {
 
 func TestCannotUpdateClaimedItemWhenUnauthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID - 1, Status: managers.CLAIMED}
 
 	if isUserAuthorized(userSession, item, http.MethodPut) {
@@ -248,7 +221,7 @@ func TestCannotUpdateClaimedItemWhenUnauthorizedShelter(t *testing.T) {
 
 func TestCannotUpdateCreatedItemWhenUnauthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID - 1, Status: managers.CREATED}
 
 	if isUserAuthorized(userSession, item, http.MethodPut) {
@@ -258,7 +231,7 @@ func TestCannotUpdateCreatedItemWhenUnauthorizedShelter(t *testing.T) {
 
 func TestCanUpdateCreatedItemWhenAuthorizedShelter(t *testing.T) {
 	shelterID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID}
+	userSession := &managers.UserSession{UserType: managers.SHELTER, UserID: shelterID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{ShelterID: shelterID, Status: managers.CREATED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
@@ -268,7 +241,7 @@ func TestCanUpdateCreatedItemWhenAuthorizedShelter(t *testing.T) {
 
 func TestCanUpdateCreatedItemWhenSamaritanSessionAndItemUnclaimed(t *testing.T) {
 	samaritanID := rand.Int63()
-	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN, UserID: samaritanID, LoginTime: time.Now().Unix()}
 	item := &managers.Item{Status: managers.CREATED}
 
 	if !isUserAuthorized(userSession, item, http.MethodPut) {
