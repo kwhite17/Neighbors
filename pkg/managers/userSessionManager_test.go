@@ -14,11 +14,11 @@ func initUserSessionManager() *UserSessionManager {
 	return &UserSessionManager{Datasource: database.StandardDatasource{Database: dbToClose}}
 }
 
-func TestCanReadItsOwnUserSessionWrite(t *testing.T) {
+func TestCanReadItsOwnSamaritanSessionWrite(t *testing.T) {
 	manager := initUserSessionManager()
 	defer cleanDatabase()
 
-	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, testUsername)
+	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, SAMARITAN)
 	if err != nil {
 		t.Error(err)
 	}
@@ -35,13 +35,43 @@ func TestCanReadItsOwnUserSessionWrite(t *testing.T) {
 	if createdSession.UserID != testShelterID {
 		t.Errorf("Expected %v to equal %v", createdSession.UserID, testShelterID)
 	}
+
+	if createdSession.UserType != SAMARITAN {
+		t.Errorf("Expected %v to equal %v", createdSession.UserType, SAMARITAN)
+	}
+}
+func TestCanReadItsOwnShelterSessionWrite(t *testing.T) {
+	manager := initUserSessionManager()
+	defer cleanDatabase()
+
+	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, SHELTER)
+	if err != nil {
+		t.Error(err)
+	}
+
+	createdSession, err := manager.GetUserSession(context.Background(), sessionKey)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if createdSession.SessionKey != sessionKey {
+		t.Errorf("Expected %v to equal %v", createdSession, sessionKey)
+	}
+
+	if createdSession.UserID != testShelterID {
+		t.Errorf("Expected %v to equal %v", createdSession.UserID, testShelterID)
+	}
+
+	if createdSession.UserType != SHELTER {
+		t.Errorf("Expected %v to equal %v", createdSession.UserType, SHELTER)
+	}
 }
 
 func TestItCanDeleteUserSession(t *testing.T) {
 	manager := initUserSessionManager()
 	defer cleanDatabase()
 
-	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, testUsername)
+	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, SHELTER)
 	if err != nil {
 		t.Error(err)
 	}
@@ -60,7 +90,7 @@ func TestCanReadItsOwnSessionUpdate(t *testing.T) {
 	manager := initUserSessionManager()
 	defer cleanDatabase()
 
-	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, testUsername)
+	sessionKey, err := manager.WriteUserSession(context.Background(), testShelterID, SHELTER)
 	if err != nil {
 		t.Error(err)
 	}

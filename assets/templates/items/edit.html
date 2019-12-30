@@ -35,9 +35,10 @@
     <div class="form-group">
         <label for="itemStatus">Status</label>
         <select id="itemStatus" class="form-control" name="status">
-            <option value="OPEN">Open</option>
-            <option value="CLAIMED">Claimed</option>
-            <option value="DELIVERED">Delivered</option>
+            <option value="1">Open</option>
+            <option value="2">Claimed</option>
+            <option value="3">Delivered</option>
+            <option value="4">Received</option>
         </select>
     </div>
     <button type="button" class="btn btn-primary" onclick="updateItem()">Update Item</button>
@@ -57,7 +58,7 @@
             Gender: formElements.namedItem('gender').value,
             Quantity: Number(formElements.namedItem('quantity').value),
             Size: formElements.namedItem('size').value,
-            Status: formElements.namedItem('status').value,
+            Status: Number(formElements.namedItem('status').value),
             ID: Number(formElements.namedItem('id').value),
             ShelterID: Number(formElements.namedItem('shelterId').value),
         };

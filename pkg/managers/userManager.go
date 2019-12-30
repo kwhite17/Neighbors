@@ -13,13 +13,18 @@ var deleteUserQuery = "DELETE FROM users WHERE ID=$1"
 var getSingleUserQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street, UserType FROM users where ID=$1"
 var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street, UserType FROM users WHERE UserType=1"
 var updateUserQuery = "UPDATE users SET City = $1, Country = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
-var getPasswordForUsernameQuery = "SELECT ID, Password FROM users WHERE Name = $1"
+var getPasswordForUsernameQuery = "SELECT ID, Password, UserType FROM users WHERE Name = $1"
 
 type UserManager struct {
 	Datasource database.Datasource
 }
 
 type UserType int
+
+const (
+	SHELTER   UserType = 1
+	SAMARITAN UserType = 2
+)
 
 type ContactInformation struct {
 	City       string
@@ -36,9 +41,6 @@ type User struct {
 	UserType UserType
 	*ContactInformation
 }
-
-const SHELTER UserType = 1
-const SAMARITAN UserType = 2
 
 func (um *UserManager) GetUser(ctx context.Context, id interface{}) (*User, error) {
 	result, err := um.Datasource.ExecuteBatchReadQuery(ctx, getSingleUserQuery, []interface{}{id})
@@ -65,10 +67,11 @@ func (um *UserManager) GetPasswordForUsername(ctx context.Context, username stri
 
 	var ID int64
 	var password string
-	if err := row.Scan(&ID, &password); err != nil {
+	var userType UserType
+	if err := row.Scan(&ID, &password, &userType); err != nil {
 		return nil, err
 	}
-	user := User{ID: ID, Password: password}
+	user := User{ID: ID, Password: password, UserType: userType}
 	return &user, nil
 }
 

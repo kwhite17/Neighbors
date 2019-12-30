@@ -22,7 +22,7 @@ func RetrieveTemplate(templatePath string) (*template.Template, error) {
 		return nil, fmt.Errorf("ERROR - Couldn't Retrieve Asset From Path: %s\n", templatePath)
 	}
 
-	return template.New(templatePath).Parse(string(htmlBytes))
+	return template.New(templatePath).Funcs(buildFuncMap()).Parse(string(htmlBytes))
 }
 
 func RetrieveMultiTemplate(paths ...string) (*template.Template, error) {
@@ -33,17 +33,17 @@ func RetrieveMultiTemplate(paths ...string) (*template.Template, error) {
 		hb, err := assets.Asset(fp)
 
 		if err != nil {
-			return nil, fmt.Errorf("ERROR - Couldn't retrieve asset from path: %s\n", t)
+			return nil, fmt.Errorf("ERROR [%s] Couldn't retrieve asset from path: %s\n", t, err)
 		}
 
 		if i == 0 {
-			tpl, err = template.New(t).Parse(string(hb))
+			tpl, err = template.New(t).Funcs(buildFuncMap()).Parse(string(hb))
 		} else {
-			tpl, err = tpl.Parse(string(hb))
+			tpl, err = tpl.Funcs(buildFuncMap()).Parse(string(hb))
 		}
 
 		if err != nil {
-			return nil, fmt.Errorf("ERROR - Failed to parse template: %s\n", t)
+			return nil, fmt.Errorf("ERROR [%s] - Failed to parse template: %s\n", t, err)
 		}
 	}
 

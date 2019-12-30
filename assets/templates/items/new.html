@@ -47,7 +47,7 @@
             Gender: formElements.namedItem('gender').value,
             Quantity: Number(formElements.namedItem('quantity').value),
             Size: formElements.namedItem('size').value,
-            Status: "OPEN",
+            Status: 1
         };
 
         req.open("POST", window.location.origin + '/items/');

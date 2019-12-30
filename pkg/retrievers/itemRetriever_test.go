@@ -17,7 +17,7 @@ var testGender = "testGender"
 var testQuantity = int8(rand.Int() % 127)
 var testShelterID = rand.Int63()
 var testSize = "testSize"
-var testStatus = "testStatus"
+var testStatus = managers.CLAIMED
 
 func TestRenderItemTemplate(t *testing.T) {
 	testArray := make([]byte, 0)
@@ -30,7 +30,7 @@ func TestRenderItemTemplate(t *testing.T) {
 	}
 
 	tmpl.Execute(testBuffer, map[string]interface{}{
-		"Item": testItem,
+		"Item":           testItem,
 		"ShelterSession": nil,
 	})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
@@ -41,7 +41,7 @@ func TestRenderItemTemplate(t *testing.T) {
 
 	htmlStr := string(htmlBytes)
 
-	if !strings.Contains(htmlStr, "<p class=\"card-text\">Status: testStatus</p>") || !strings.Contains(htmlStr, testItem.Status) {
+	if !strings.Contains(htmlStr, "<p class=\"card-text\">Status: CLAIMED</p>") || !strings.Contains(htmlStr, statusAsString(testItem.Status)) {
 		t.Errorf("TestRenderItemTemplate Failure - Expected html to contain 'strong' or correct status, Actual: %s\n", htmlStr)
 	}
 }
@@ -82,7 +82,7 @@ func TestRenderAllItemsTemplate(t *testing.T) {
 	}
 
 	tmpl.Execute(testBuffer, map[string]interface{}{
-		"Items": []managers.Item{*testItem},
+		"Items":          []managers.Item{*testItem},
 		"ShelterSession": nil,
 	})
 	htmlBytes, err := ioutil.ReadAll(testBuffer)
@@ -93,8 +93,8 @@ func TestRenderAllItemsTemplate(t *testing.T) {
 
 	htmlStr := string(htmlBytes)
 
-	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, testItem.Status) {
-		t.Errorf("TestRenderAllItemsTemplate Failure - Expected html to contain 'strong' or correct status: %s, Actual: %s\n", testItem.Status, htmlStr)
+	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, statusAsString(testItem.Status)) {
+		t.Errorf("TestRenderAllItemsTemplate Failure - Expected html to contain 'strong' or correct status: %s, Actual: %s\n", statusAsString(testItem.Status), htmlStr)
 	}
 }
 func generateItem() *managers.Item {
