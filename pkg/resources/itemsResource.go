@@ -197,7 +197,7 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 		return isUserAuthorized(userSession, nil, http.MethodPost), userSession
 	}
 
-	itemID, err := strconv.ParseInt(pathArray[getItemIDPathIndex(pathArray, r.Method)], 10, strconv.IntSize)
+	itemID, err := strconv.ParseInt(pathArray[getElementIDPathIndex(pathArray, r.Method)], 10, strconv.IntSize)
 	if err != nil {
 		log.Println(err)
 		return false, userSession
@@ -256,7 +256,7 @@ func isSamaritanAuthorized(userSession *managers.UserSession, item *managers.Ite
 	return item.SamaritanID == userSession.UserID && userSession.UserType == managers.SAMARITAN
 }
 
-func getItemIDPathIndex(pathArray []string, method string) int {
+func getElementIDPathIndex(pathArray []string, method string) int {
 	pathArraySize := len(pathArray)
 	if method == http.MethodGet {
 		return pathArraySize - 2
