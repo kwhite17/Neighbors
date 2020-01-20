@@ -19,7 +19,11 @@ func (hsh HomeServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 	isAuthorized, shelterSession := hsh.isAuthorized(r)
 
 	if !isAuthorized {
+		tpl, _ := retrievers.RetrieveTemplate("home/unauthorized")
 		w.WriteHeader(http.StatusUnauthorized)
+		if tpl != nil {
+			tpl.Execute(w, nil)
+		}
 		return
 	}
 
@@ -28,9 +32,12 @@ func (hsh HomeServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) 
 		tpl, err := retrievers.RetrieveMultiTemplate("home/layout", "home/index")
 
 		if err != nil {
+			tpl, _ = retrievers.RetrieveTemplate("home/error")
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
-
+			if tpl != nil {
+				tpl.Execute(w, nil)
+			}
 			return
 		}
 

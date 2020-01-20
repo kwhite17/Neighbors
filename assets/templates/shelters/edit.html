@@ -51,13 +51,11 @@
 
         req.open("PUT", putPath);
         req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = putPath;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to update shelter!");
-                return false;
-            }
+            return handleAsyncResponse(
+                req,
+                putPath,
+                "You don't have permission to update this shelter!"
+            );
         };
 
         req.send(JSON.stringify(elementUpdate));

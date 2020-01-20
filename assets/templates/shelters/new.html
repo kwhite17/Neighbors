@@ -64,14 +64,11 @@
 
         req.open("POST", window.location.origin + '/shelters/');
         req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 200) {
-                var response = JSON.parse(req.response);
-                window.location = window.location.origin + '/shelters/' + response.ID;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 200) {
-                alert("Failed to update shelter!");
-                return false;
-            }
+            return handleAsyncResponse(
+                req,
+                window.location.origin + '/shelters/' + JSON.parse(req.response).ID,
+                "You do not have permission to create a shelter!"
+            );
         };
 
         req.send(JSON.stringify(elementUpdate));

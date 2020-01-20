@@ -51,20 +51,16 @@
 
 {{define "script-content"}}
 <script type="text/javascript">
-    var editShelter = function () {
-        window.location = window.location + '/edit';
-    };
-
     var deleteShelter = function () {
         var req = new XMLHttpRequest();
         req.open("DELETE", window.location)
         req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 204) {
-                window.location = window.location.origin + '/shelters';
-            } else if (req.readyState === 4 && req.status !== 204) {
-                alert("Failed to delete shelter!");
-            }
-        };
+            return handleAsyncResponse(
+                req,
+                window.location.origin + '/shelters',
+                "You aren't authorized to delete this shelter!"
+            );
+        }
 
         req.send()
     };

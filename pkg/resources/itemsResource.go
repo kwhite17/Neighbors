@@ -23,7 +23,11 @@ type ItemServiceHandler struct {
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {
+		tpl, _ := retrievers.RetrieveTemplate("home/unauthorized")
 		w.WriteHeader(http.StatusUnauthorized)
+		if tpl != nil {
+			tpl.Execute(w, nil)
+		}
 		return
 	}
 
@@ -36,8 +40,12 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 	case "new":
 		t, err := handler.ItemRetriever.RetrieveCreateEntityTemplate()
 		if err != nil {
+			t, _ = retrievers.RetrieveTemplate("home/error")
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			if t != nil {
+				t.Execute(w, nil)
+			}
 			return
 		}
 		t.Execute(w, tplMap)
@@ -45,24 +53,36 @@ func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Reque
 		itemID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, 64)
 
 		if err != nil {
+			t, _ := retrievers.RetrieveTemplate("home/error")
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			if t != nil {
+				t.Execute(w, nil)
+			}
 			return
 		}
 
 		item, err := handler.ItemManager.GetItem(r.Context(), itemID)
 
 		if err != nil {
+			t, _ := retrievers.RetrieveTemplate("home/error")
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			if t != nil {
+				t.Execute(w, nil)
+			}
 			return
 		}
 
 		t, err := handler.ItemRetriever.RetrieveEditEntityTemplate()
 
 		if err != nil {
+			t, _ := retrievers.RetrieveTemplate("home/error")
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
+			if t != nil {
+				t.Execute(w, nil)
+			}
 			return
 		}
 
@@ -115,20 +135,35 @@ func (handler ItemServiceHandler) handleGetItem(w http.ResponseWriter, r *http.R
 func (handler ItemServiceHandler) handleGetSingleItem(w http.ResponseWriter, r *http.Request, itemID string, userSession *managers.UserSession) {
 	id, err := strconv.ParseInt(itemID, 10, 64)
 	if err != nil {
+		t, _ := retrievers.RetrieveTemplate("home/error")
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
+		if t != nil {
+			t.Execute(w, nil)
+		}
+		return
 	}
 
 	item, err := handler.ItemManager.GetItem(r.Context(), id)
 	if err != nil {
+		t, _ := retrievers.RetrieveTemplate("home/error")
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
+		if t != nil {
+			t.Execute(w, nil)
+		}
+		return
 	}
 
 	template, err := handler.ItemRetriever.RetrieveSingleEntityTemplate()
 	if err != nil {
+		t, _ := retrievers.RetrieveTemplate("home/error")
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
+		if t != nil {
+			t.Execute(w, nil)
+		}
+		return
 	}
 
 	responseObject := make(map[string]interface{}, 0)
@@ -185,6 +220,10 @@ func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers
 
 	if r.Method == http.MethodGet && pathArray[len(pathArray)-1] != "edit" {
 		return true, nil
+	}
+
+	if cookie == nil {
+		return false, nil
 	}
 
 	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)

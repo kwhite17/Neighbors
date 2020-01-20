@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
+    <title>Neighbors</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css"
         integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
@@ -86,6 +86,27 @@
             };
 
             req.send();
+        };
+
+        var handleAsyncResponse = function (req, redirectLocation, unauthorizedMessage) {
+            if (req.readyState !== 4) {
+                return false;
+            }
+
+            if (req.status === 200 || req.status === 204) {
+                window.location = redirectLocation;
+                return false;
+            }
+
+            if (req.status === 403) {
+                alert(unauthorizedMessage);
+                return false;
+            }
+
+            if (req.status === 500) {
+                alert("An error occurred. I have failed you... for the last time.");
+                return false;
+            }
         };
     </script>
     {{template "script-content" .}}

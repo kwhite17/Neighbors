@@ -52,14 +52,11 @@
 
         req.open("POST", window.location.origin + '/items/');
         req.onreadystatechange = function () {
-            if (req.readyState === 4 && req.status === 200) {
-                var response = JSON.parse(req.response);
-                window.location = window.location.origin + '/items/' + response.ID;
-                return false;
-            } else if (req.readyState === 4 && req.status !== 200) {
-                alert("Failed to create item!");
-                return false;
-            }
+            handleAsyncResponse(
+                req,
+                window.location.origin + '/items/' + JSON.parse(req.response).ID,
+                "You don't have permission to create an item!"
+            );
         };
 
         req.send(JSON.stringify(elementUpdate));
