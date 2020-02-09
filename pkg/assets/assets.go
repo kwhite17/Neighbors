@@ -125,7 +125,7 @@ func assetsTemplatesHomeErrorHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/home/error.html", size: 395, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/home/error.html", size: 395, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -165,7 +165,7 @@ func assetsTemplatesHomeLayoutHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/home/layout.html", size: 5210, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/home/layout.html", size: 5210, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -185,7 +185,7 @@ func assetsTemplatesHomeUnauthorizedHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/home/unauthorized.html", size: 332, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/home/unauthorized.html", size: 332, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -205,7 +205,7 @@ func assetsTemplatesItemsEditHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/items/edit.html", size: 3750, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/items/edit.html", size: 3750, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -225,7 +225,7 @@ func assetsTemplatesItemsItemHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/items/item.html", size: 1335, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/items/item.html", size: 1335, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -265,7 +265,7 @@ func assetsTemplatesItemsNewHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/items/new.html", size: 2734, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/items/new.html", size: 2734, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -305,7 +305,7 @@ func assetsTemplatesSheltersEditHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/shelters/edit.html", size: 2673, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/shelters/edit.html", size: 2673, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -325,7 +325,7 @@ func assetsTemplatesSheltersNewHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/shelters/new.html", size: 3360, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/shelters/new.html", size: 3360, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -345,7 +345,7 @@ func assetsTemplatesSheltersShelterHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/shelters/shelter.html", size: 1993, mode: os.FileMode(511), modTime: time.Unix(1579975838, 0)}
+	info := bindataFileInfo{name: "assets/templates/shelters/shelter.html", size: 1993, mode: os.FileMode(511), modTime: time.Unix(1581215115, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
