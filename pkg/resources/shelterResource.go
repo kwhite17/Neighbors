@@ -26,7 +26,11 @@ type UserServiceHandler struct {
 func (handler UserServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	isAuthorized, userSession := handler.isAuthorized(r)
 	if !isAuthorized {
+		tpl, _ := retrievers.RetrieveTemplate("home/unauthorized")
 		w.WriteHeader(http.StatusUnauthorized)
+		if tpl != nil {
+			tpl.Execute(w, nil)
+		}
 		return
 	}
 

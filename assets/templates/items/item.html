@@ -1,36 +1,36 @@
 {{define "main-content"}}
-    <div class="card">
-        <div class="card-header">Item Detail</div>
-        <div class="card-body">
-            <h5 class="card-title">{{.Item.Category}}</h5>
-            <p class="card-text">Quantity: {{.Item.Quantity}}</p>
-            <p class="card-text">Gender: {{.Item.Gender}}</p>
-            <p class="card-text">Size: {{.Item.Size}}</p>
-            <p class="card-text">Status: {{ statusAsString .Item.Status}}</p>
-            <a href="./{{.Item.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
-            <a href="/shelters/{{.Item.ShelterID}}" role="button" class="btn btn-secondary card-link">View Shelter</a>
-            <button onclick="deleteItem()" class="btn btn-danger card-link">Delete</button>
-        </div>
-        <div class="card-footer text-muted">
-            <a href="/items/" class="card-link">View All Items</a>
-        </div>
+<div class="card">
+    <div class="card-header">Item Detail</div>
+    <div class="card-body">
+        <h5 class="card-title">{{.Item.Category}}</h5>
+        <p class="card-text">Quantity: {{.Item.Quantity}}</p>
+        <p class="card-text">Gender: {{.Item.Gender}}</p>
+        <p class="card-text">Size: {{.Item.Size}}</p>
+        <p class="card-text">Status: {{ statusAsString .Item.Status}}</p>
+        <a href="./{{.Item.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+        <a href="/shelters/{{.Item.ShelterID}}" role="button" class="btn btn-secondary card-link">View Shelter</a>
+        <button onclick="deleteItem()" class="btn btn-danger card-link">Delete</button>
     </div>
+    <div class="card-footer text-muted">
+        <a href="/items/" class="card-link">View All Items</a>
+    </div>
+</div>
 {{end}}
 
 {{define "script-content"}}
-    <script type="text/javascript">
-        var deleteItem = function () {
-            var req = new XMLHttpRequest();
-            req.open("DELETE", window.location)
-            req.onreadystatechange = function () {
-                if (req.readyState === 4 && req.status === 204) {
-                    window.location = window.location.origin + '/items';
-                } else if (req.readyState === 4 && req.status !== 204) {
-                    alert("Failed to delete item!");
-                }
-            };
+<script type="text/javascript">
+    var deleteItem = function () {
+        var req = new XMLHttpRequest();
+        req.open("DELETE", window.location)
+        req.onreadystatechange = function () {
+            return handleAsyncResponse(
+                req,
+                window.location.origin + '/items',
+                "You don't have permission to delete this item!"
+            );
+        };
 
-            req.send()
-        }
-    </script>
+        req.send()
+    }
+</script>
 {{end}}
