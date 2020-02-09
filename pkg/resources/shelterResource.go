@@ -8,6 +8,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
@@ -200,59 +201,47 @@ func (handler UserServiceHandler) buildContactInformation(createData map[string]
 func (handler UserServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/")
-	switch r.Method {
-	case http.MethodPost:
-		if cookie == nil {
-			return true, nil
-		}
-		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-		if err != nil {
-			log.Println(err)
-			return err == sql.ErrNoRows, userSession
-		}
 
-		return userSession == nil, userSession
+	if r.Method == http.MethodGet && pathArray[len(pathArray)-1] != "edit" {
+		return true, nil
+	}
+
+	if cookie == nil && r.Method == http.MethodPost {
+		return true, nil
+	}
+
+	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	if err != nil {
+		log.Println(err)
+		return err == sql.ErrNoRows && r.Method == http.MethodPost, userSession
+	}
+
+	userID, err := strconv.ParseInt(pathArray[getElementIDPathIndex(pathArray, r.Method)], 10, strconv.IntSize)
+	if err != nil {
+		log.Println(err)
+		return false, userSession
+	}
+
+	return handler.isUserAuthorized(userSession, userID, r.Method), userSession
+}
+
+func (handler UserServiceHandler) isUserAuthorized(userSession *managers.UserSession, userID int64, httpMethod string) bool {
+	if userSession == nil {
+		return false
+	}
+
+	if time.Now().After(time.Unix(userSession.LoginTime+24*7*3600, 0)) {
+		return false
+	}
+
+	switch httpMethod {
 	case http.MethodPut:
 		fallthrough
-	case http.MethodDelete:
-		if cookie == nil {
-			return false, nil
-		}
-		userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-		if err != nil {
-			log.Println(err)
-			return false, userSession
-		}
-
-		userID, err := strconv.ParseInt(pathArray[len(pathArray)-1], 10, strconv.IntSize)
-		if err != nil {
-			log.Println(err)
-			return false, userSession
-		}
-
-		return userSession.UserID == userID, userSession
 	case http.MethodGet:
-		var err error
-		userSession := &managers.UserSession{}
-		if cookie != nil {
-			userSession, err = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-			if err != nil && err != sql.ErrNoRows {
-				log.Println(err)
-				return false, userSession
-			}
-		}
-
-		if pathArray[len(pathArray)-1] == "edit" {
-			userID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
-			if err != nil {
-				log.Println(err)
-				return false, userSession
-			}
-
-			return userSession != nil && userSession.UserID == userID, userSession
-		}
-		return true, userSession
+		fallthrough
+	case http.MethodDelete:
+		return userSession.UserID == userID
 	default:
-		return false, nil
+		return false
 	}
 }

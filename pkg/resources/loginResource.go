@@ -1,12 +1,10 @@
 package resources
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 	"net/http"
-	"strconv"
-	"strings"
+	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
@@ -23,7 +21,7 @@ type LoginServiceHandler struct {
 }
 
 func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	isAuthorized, shelterSession := lsh.isAuthorized(r)
+	isAuthorized, userSession := lsh.isAuthorized(r)
 
 	if !isAuthorized {
 		w.WriteHeader(http.StatusUnauthorized)
@@ -32,7 +30,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 	}
 
 	tplMap := map[string]interface{}{
-		"UserSession": shelterSession,
+		"UserSession": userSession,
 	}
 
 	switch r.Method {
@@ -48,13 +46,7 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 		t.Execute(w, tplMap)
 	case "DELETE":
-		cookie, err := r.Cookie("NeighborsAuth")
-		if err != nil {
-			log.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-		}
-
-		_, err = lsh.UserSessionManager.DeleteUserSession(r.Context(), cookie.Value)
+		_, err := lsh.UserSessionManager.DeleteUserSession(r.Context(), userSession.SessionKey)
 		if err != nil {
 			log.Println(err)
 			w.WriteHeader(http.StatusInternalServerError)
@@ -97,62 +89,24 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
 	cookie, _ := r.Cookie("NeighborsAuth")
-	pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/"), "/")
 
-	switch r.Method {
-	case http.MethodPost:
-		if cookie == nil {
-			return true, nil
-		}
+	if r.Method == http.MethodGet || r.Method == http.MethodPost {
+		return true, nil
+	}
 
-		shelterSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-
-		if err != nil {
-			log.Println(err)
-			return err == sql.ErrNoRows, shelterSession
-		}
-
-		return shelterSession == nil, shelterSession
-	case http.MethodPut:
-		fallthrough
-	case http.MethodDelete:
-		if cookie == nil {
-			return false, nil
-		}
-
-		shelterSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-
-		if err != nil {
-			log.Println(err)
-			return false, shelterSession
-		}
-
-		return shelterSession != nil && shelterSession.SessionKey == cookie.Value, shelterSession
-	case http.MethodGet:
-		var err error
-		shelterSession := &managers.UserSession{}
-
-		if cookie != nil {
-			shelterSession, err = lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-
-			if err != nil && err != sql.ErrNoRows {
-				log.Println(err)
-				return false, shelterSession
-			}
-		}
-
-		if pathArray[len(pathArray)-1] == "edit" {
-			shelterID, err := strconv.ParseInt(pathArray[len(pathArray)-2], 10, strconv.IntSize)
-
-			if err != nil {
-				log.Println(err)
-				return false, shelterSession
-			}
-
-			return shelterSession != nil && shelterSession.UserID == shelterID, shelterSession
-		}
-		return true, shelterSession
-	default:
+	if cookie == nil || r.Method != http.MethodDelete {
 		return false, nil
 	}
+
+	userSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	if err != nil || userSession == nil {
+		log.Println(err)
+		return false, nil
+	}
+
+	if time.Now().After(time.Unix(userSession.LoginTime+24*7*3600, 0)) {
+		return false, nil
+	}
+
+	return userSession.SessionKey == cookie.Value, userSession
 }
