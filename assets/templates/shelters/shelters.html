@@ -7,6 +7,9 @@
             Shelter Name
         </th>
         <th>
+            Email
+        </th>
+        <th>
             Address
         </th>
         <th>
@@ -17,8 +20,8 @@
         {{range $index, $element := .Users }}
         <tr>
             <td>{{ $element.Name }}</td>
-            <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.Country }},
-                {{ $element.PostalCode }}</td>
+            <td>{{ $element.Email }}</td>
+            <td>{{ $element.Street}}, {{ $element.City }}, {{ $element.State }}, {{ $element.PostalCode }}</td>
             <td><a href="./{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
         </tr>
         {{end}}

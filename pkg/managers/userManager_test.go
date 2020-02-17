@@ -12,7 +12,7 @@ import (
 )
 
 var testCity = "testCity"
-var testCountry = "testCountry"
+var testEmail = "test@test.com"
 var testName = "testName"
 var testPostalCode = "testPostalCode"
 var testState = "testState"
@@ -154,7 +154,7 @@ func TestItGetsPasswordForUsername(t *testing.T) {
 func generateUser() *User {
 	contactInfo := &ContactInformation{
 		City:       testCity,
-		Country:    testCountry,
+		Email:      testEmail,
 		Name:       testName,
 		PostalCode: testPostalCode,
 		State:      testState,

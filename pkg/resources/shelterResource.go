@@ -105,7 +105,13 @@ func (handler UserServiceHandler) handleCreateUser(w http.ResponseWriter, r *htt
 		return
 	}
 
-	user := &managers.User{ContactInformation: handler.buildContactInformation(createData)}
+	userType, err := strconv.Atoi(reflect.ValueOf(createData["UserType"]).String())
+	user := &managers.User{ContactInformation: handler.buildContactInformation(createData), UserType: managers.UserType(userType)}
+	if !handler.UserManager.ValidateForUserCreate(r.Context(), user) {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
 	userID, err := handler.UserManager.WriteUser(r.Context(), user, createData["Password"].(string))
 	if err != nil {
 		log.Println(err)
@@ -114,8 +120,7 @@ func (handler UserServiceHandler) handleCreateUser(w http.ResponseWriter, r *htt
 	}
 
 	user.ID = userID
-	userType, err := strconv.Atoi(reflect.ValueOf(createData["UserType"]).String())
-	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, managers.UserType(userType))
+	cookieID, err := handler.UserSessionManager.WriteUserSession(r.Context(), userID, user.UserType)
 	if err != nil {
 		handler.UserManager.DeleteUser(r.Context(), userID)
 		log.Println(err)
@@ -194,7 +199,7 @@ func (handler UserServiceHandler) handleDeleteUser(w http.ResponseWriter, r *htt
 func (handler UserServiceHandler) buildContactInformation(createData map[string]interface{}) *managers.ContactInformation {
 	return &managers.ContactInformation{
 		City:       createData["City"].(string),
-		Country:    createData["Country"].(string),
+		Email:      createData["Email"].(string),
 		Name:       createData["Name"].(string),
 		PostalCode: createData["PostalCode"].(string),
 		State:      createData["State"].(string),
