@@ -8,11 +8,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-var createUserQuery = "INSERT INTO users (City, Country, Name, Password, PostalCode, State, Street, UserType) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
+var createUserQuery = "INSERT INTO users (City, Email, Name, Password, PostalCode, State, Street, UserType) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 var deleteUserQuery = "DELETE FROM users WHERE ID=$1"
-var getSingleUserQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street, UserType FROM users where ID=$1"
-var getAllSheltersQuery = "SELECT ID, City, Country, Name, PostalCode, State, Street, UserType FROM users WHERE UserType=1"
-var updateUserQuery = "UPDATE users SET City = $1, Country = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
+var getSingleUserQuery = "SELECT ID, City, Email, Name, PostalCode, State, Street, UserType FROM users where ID=$1"
+var getAllSheltersQuery = "SELECT ID, City, Email, Name, PostalCode, State, Street, UserType FROM users WHERE UserType=1"
+var updateUserQuery = "UPDATE users SET City = $1, Email = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
 var getPasswordForUsernameQuery = "SELECT ID, Password, UserType FROM users WHERE Name = $1"
 
 type UserManager struct {
@@ -28,7 +28,7 @@ const (
 
 type ContactInformation struct {
 	City       string
-	Country    string
+	Email      string
 	Name       string
 	PostalCode string
 	State      string
@@ -40,6 +40,36 @@ type User struct {
 	Password string
 	UserType UserType
 	*ContactInformation
+}
+
+func (um *UserManager) ValidateForUserCreate(ctx context.Context, user *User) bool {
+	hasEmail := user.Email != ""
+	hasName := user.Name != ""
+	if !hasEmail || !hasName {
+		return false
+	}
+
+	if user.UserType == SAMARITAN {
+		return true
+	}
+
+	if user.City == "" {
+		return false
+	}
+
+	if user.Name == "" {
+		return false
+	}
+
+	if user.PostalCode == "" {
+		return false
+	}
+
+	if user.State == "" {
+		return false
+	}
+
+	return user.Street != ""
 }
 
 func (um *UserManager) GetUser(ctx context.Context, id interface{}) (*User, error) {
@@ -93,7 +123,7 @@ func (um *UserManager) WriteUser(ctx context.Context, user *User, unencryptedPas
 		return -1, err
 	}
 
-	values := []interface{}{user.City, user.Country, user.Name, encryptedPassword, user.PostalCode, user.State, user.Street, SHELTER}
+	values := []interface{}{user.City, user.Email, user.Name, encryptedPassword, user.PostalCode, user.State, user.Street, SHELTER}
 	result, err := um.Datasource.ExecuteWriteQuery(ctx, createUserQuery, values, true)
 	if err != nil {
 		return -1, err
@@ -102,7 +132,7 @@ func (um *UserManager) WriteUser(ctx context.Context, user *User, unencryptedPas
 }
 
 func (um *UserManager) UpdateUser(ctx context.Context, user *User) error {
-	values := []interface{}{user.City, user.Country, user.Name, user.PostalCode, user.State, user.Street, user.ID}
+	values := []interface{}{user.City, user.Email, user.Name, user.PostalCode, user.State, user.Street, user.ID}
 	_, err := um.Datasource.ExecuteWriteQuery(ctx, updateUserQuery, values, true)
 	return err
 }
@@ -120,16 +150,16 @@ func (um *UserManager) buildUsers(result *sql.Rows) ([]*User, error) {
 	for result.Next() {
 		var id int64
 		var city string
-		var country string
+		var email string
 		var name string
 		var postalCode string
 		var state string
 		var street string
 		var userType int
-		if err := result.Scan(&id, &city, &country, &name, &postalCode, &state, &street, &userType); err != nil {
+		if err := result.Scan(&id, &city, &email, &name, &postalCode, &state, &street, &userType); err != nil {
 			return nil, err
 		}
-		contactInfo := &ContactInformation{City: city, Country: country, Name: name, PostalCode: postalCode, State: state, Street: street}
+		contactInfo := &ContactInformation{City: city, Email: email, Name: name, PostalCode: postalCode, State: state, Street: street}
 		user := User{ID: id, ContactInformation: contactInfo, UserType: UserType(userType)}
 		response = append(response, &user)
 	}

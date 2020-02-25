@@ -18,6 +18,10 @@
         <input type="text" class="form-control" name="name" placeholder="User Name" id="shelterName">
     </div>
     <div class="form-group">
+        <label for="shelterEmail">Email</label>
+        <input type="text" class="form-control" name="email" placeholder="Email" id="shelterEmail">
+    </div>
+    <div class="form-group">
         <label for="shelterStreet">Street Address</label>
         <input type="text" class="form-control" name="street" placeholder="Street Address" id="shelterStreet">
     </div>
@@ -53,6 +57,7 @@
         var formElements = document.getElementById('createForm').elements;
         var elementUpdate = {
             Name: formElements.namedItem('name').value,
+            Email: formElements.namedItem('email').value,
             Password: formElements.namedItem('password').value,
             Street: formElements.namedItem('street').value,
             City: formElements.namedItem('city').value,
