@@ -18,7 +18,7 @@ func (sr ShelterRetriever) RetrieveCreateEntityTemplate() (*template.Template, e
 }
 
 func (sr ShelterRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return RetrieveMultiTemplate("home/layout", getShelterTemplatePath)
+	return RetrieveMultiTemplate("home/layout", getShelterTemplatePath, "shelters/samaritanSummary", "shelters/shelterSummary")
 }
 
 func (sr ShelterRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {
