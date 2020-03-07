@@ -17,7 +17,7 @@ var itemsEndpoint = "/items/"
 type ItemServiceHandler struct {
 	ItemManager        *managers.ItemManager
 	ItemRetriever      *retrievers.ItemRetriever
-	UserSessionManager *managers.UserSessionManager
+	UserSessionManager managers.SessionManger
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -215,20 +215,34 @@ func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *htt
 }
 
 func (handler ItemServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
-	cookie, _ := r.Cookie("NeighborsAuth")
-	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, itemsEndpoint), "/")
+	var userSession *managers.UserSession
+	var userSessionError error
+	cookie, cookieError := r.Cookie("NeighborsAuth")
+	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/")
+
+	if cookieError != nil {
+		userSession, userSessionError = nil, cookieError
+	} else {
+		userSession, userSessionError = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	}
 
 	if r.Method == http.MethodGet && pathArray[len(pathArray)-1] != "edit" {
-		return true, nil
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
+
+		return true, userSession
 	}
 
 	if cookie == nil {
-		return false, nil
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
+		return false, userSession
 	}
 
-	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-	if err != nil {
-		log.Println(err)
+	if userSessionError != nil {
+		log.Println(userSessionError)
 		return false, userSession
 	}
 

@@ -1,26 +1,127 @@
 package resources
 
 import (
+	"database/sql"
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 	"time"
 
+	"github.com/golang/mock/gomock"
 	"github.com/kwhite17/Neighbors/pkg/managers"
 )
 
-func TestCanAlwaysViewItems(t *testing.T) {
+func TestCanViewItemsWithNoCookie(t *testing.T) {
 	ish := &ItemServiceHandler{}
-	req := httptest.NewRequest(http.MethodGet, "/items/1", nil)
 
+	req := httptest.NewRequest(http.MethodGet, "/items/1", nil)
 	isAuthorized, userSession := ish.isAuthorized(req)
 	if !isAuthorized {
 		t.Error("Expected users to always be authorized to view items")
 	}
 
 	if userSession != nil {
-		t.Error("Expected no user session to be returned for non-edit GETS")
+		t.Error("Expected no user session to be returned for GET TestWithoutCookie")
+	}
+}
+
+func TestCanViewItemsWithCookieAndNoSession(t *testing.T) {
+	ish := &ItemServiceHandler{}
+	ctrl := gomock.NewController(t)
+	ish.UserSessionManager = getMockSessionManager(ctrl, testKey, managers.SHELTER, 1, sql.ErrNoRows)
+	defer ctrl.Finish()
+
+	req := httptest.NewRequest(http.MethodGet, "/items/1", nil)
+	req.AddCookie(&http.Cookie{Name: "NeighborsAuth", Value: testKey})
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if !isAuthorized {
+		t.Error("Expected users to always be authorized to view items")
+	}
+
+	if userSession != nil {
+		t.Error("Expected no user session to be returned for GET TestWithCookieAndNoSession")
+	}
+}
+
+func TestCanViewItemsWithSession(t *testing.T) {
+	ish := &ItemServiceHandler{}
+	ctrl := gomock.NewController(t)
+	ish.UserSessionManager = getMockSessionManager(ctrl, testKey, managers.SHELTER, 1, nil)
+	defer ctrl.Finish()
+
+	req := httptest.NewRequest(http.MethodGet, "/items/1", nil)
+	req.AddCookie(&http.Cookie{Name: "NeighborsAuth", Value: testKey})
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if !isAuthorized {
+		t.Error("Expected users to always be authorized to view items")
+	}
+
+	if userSession == nil {
+		t.Error("Expected user session to be returned for GET TestWithCookieAndSession")
+	}
+}
+
+func TestCannotCreateItemsWithNoCookie(t *testing.T) {
+	ish := &ItemServiceHandler{}
+
+	req := httptest.NewRequest(http.MethodPost, "/items/", nil)
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if isAuthorized {
+		t.Error("Expected users with no cookie to be unable to create items")
+	}
+
+	if userSession != nil {
+		t.Error("Expected no user session to be returned for POST TestWithoutCookie")
+	}
+}
+
+func TestCannotCreateItemsWithCookieAndNoSession(t *testing.T) {
+	ish := &ItemServiceHandler{}
+	ctrl := gomock.NewController(t)
+	ish.UserSessionManager = getMockSessionManager(ctrl, testKey, managers.SHELTER, 1, sql.ErrNoRows)
+	defer ctrl.Finish()
+
+	req := httptest.NewRequest(http.MethodPost, "/items/", nil)
+	req.AddCookie(&http.Cookie{Name: "NeighborsAuth", Value: testKey})
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if isAuthorized {
+		t.Error("Expected users with no session to be unable to create items")
+	}
+
+	if userSession != nil {
+		t.Error("Expected no user session to be returned for POST TestWithCookieAndNoSession")
+	}
+}
+func TestCannotEditItemsWithNoCookie(t *testing.T) {
+	ish := &ItemServiceHandler{}
+
+	req := httptest.NewRequest(http.MethodGet, "/items/1/edit", nil)
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if isAuthorized {
+		t.Error("Expected users with no cookie to be unable to create items")
+	}
+
+	if userSession != nil {
+		t.Error("Expected no user session to be returned for GET EDIT TestWithoutCookie")
+	}
+}
+
+func TestCannotEditItemsWithCookieAndNoSession(t *testing.T) {
+	ish := &ItemServiceHandler{}
+	ctrl := gomock.NewController(t)
+	ish.UserSessionManager = getMockSessionManager(ctrl, testKey, managers.SHELTER, 1, sql.ErrNoRows)
+	defer ctrl.Finish()
+
+	req := httptest.NewRequest(http.MethodGet, "/items/1/edit", nil)
+	req.AddCookie(&http.Cookie{Name: "NeighborsAuth", Value: testKey})
+	isAuthorized, userSession := ish.isAuthorized(req)
+	if isAuthorized {
+		t.Error("Expected users with no session to be unable to create items")
+	}
+
+	if userSession != nil {
+		t.Error("Expected no user session to be returned for GET EDIT TestWithCookieAndNoSession")
 	}
 }
 
