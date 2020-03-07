@@ -123,7 +123,7 @@ func (um *UserManager) WriteUser(ctx context.Context, user *User, unencryptedPas
 		return -1, err
 	}
 
-	values := []interface{}{user.City, user.Email, user.Name, encryptedPassword, user.PostalCode, user.State, user.Street, SHELTER}
+	values := []interface{}{user.City, user.Email, user.Name, encryptedPassword, user.PostalCode, user.State, user.Street, user.UserType}
 	result, err := um.Datasource.ExecuteWriteQuery(ctx, createUserQuery, values, true)
 	if err != nil {
 		return -1, err

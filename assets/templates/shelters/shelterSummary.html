@@ -1,15 +1,13 @@
 {{define "shelter-summary"}}
-<div class="card-body">
-    <h5 class="card-title">{{.User.Name}} ({{.User.Email}}))</h5>
-    <h6 class="card-subtitle text-muted">
-        {{.User.Street}}, {{.User.City}}, {{.User.State}}, {{.User.PostalCode}}
-    </h6>
-    <br>
-    <a href="./{{.User.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
-    {{if .UserSession}}
-    {{if eq .UserSession.UserID .User.ID}}
-    <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
-    {{end}}
-    {{end}}
-</div>
+<h5 class="card-title">{{.User.Name}}, ({{.User.Email}})</h5>
+<h6 class="card-subtitle text-muted">
+    {{.User.Street}}, {{.User.City}}, {{.User.State}}, {{.User.PostalCode}}
+</h6>
+<br>
+<a href="./{{.User.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+{{if .UserSession}}
+{{if eq .UserSession.UserID .User.ID}}
+<button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
+{{end}}
+{{end}}
 {{end}}

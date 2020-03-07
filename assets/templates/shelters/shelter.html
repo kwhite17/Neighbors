@@ -3,12 +3,13 @@
     <div class="card-header">
         User Info
     </div>
-    <!--This will be replaced by the templates in this branch-->
-    {{if eq .User.UserType 1}}
-    {{template "shelter-summary" .}}
-    {{else}}
-    {{template "samaritan-summary" .}}
-    {{end}}
+    <div class="card-body">
+        {{if eq .User.UserType 1}}
+        {{template "shelter-summary" .}}
+        {{else}}
+        {{template "samaritan-summary" .}}
+        {{end}}
+    </div>
     <div class="card-footer text-muted">
         <a href="/shelters/" class="card-link">View All Shelters</a>
     </div>
