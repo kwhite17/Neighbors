@@ -15,6 +15,7 @@ var testName = "testName"
 var testPostalCode = "testPostalCode"
 var testState = "testState"
 var testStreet = "testStreet"
+var testEmail = "test@test.com"
 
 var shelterRetriever = &ShelterRetriever{}
 
@@ -22,6 +23,7 @@ func TestRenderSingleShelterTemplate(t *testing.T) {
 	testArray := make([]byte, 0)
 	testBuffer := bytes.NewBuffer(testArray)
 	testShelter := generateShelter()
+	testShelter.UserType = managers.SHELTER
 	tmpl, err := shelterRetriever.RetrieveSingleEntityTemplate()
 
 	if err != nil {
@@ -40,8 +42,35 @@ func TestRenderSingleShelterTemplate(t *testing.T) {
 
 	htmlStr := string(htmlBytes)
 
-	if !strings.Contains(htmlStr, "<h6 class=\"card-subtitle text-muted\">testStreet, testCity, testState,") || !strings.Contains(htmlStr, testShelter.Name) {
-		t.Errorf("GetSingleShelter Failure - Expected html to contain 'strong' or correct ID, Actual: %s\n", htmlStr)
+	if !strings.Contains(htmlStr, "testStreet, testCity, testState,") || !strings.Contains(htmlStr, testShelter.Name+" ("+testShelter.Email+")") {
+		t.Errorf("GetSingleShelter Failure - Expected html to contain location info, shelter name, and shelter email. Actual: %s\n", htmlStr)
+	}
+}
+func TestRenderSingleSamaritanTemplate(t *testing.T) {
+	testArray := make([]byte, 0)
+	testBuffer := bytes.NewBuffer(testArray)
+	testShelter := generateShelter()
+	testShelter.UserType = managers.SAMARITAN
+	tmpl, err := shelterRetriever.RetrieveSingleEntityTemplate()
+
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	tmpl.Execute(testBuffer, map[string]interface{}{
+		"User":           testShelter,
+		"ShelterSession": nil,
+	})
+	htmlBytes, err := ioutil.ReadAll(testBuffer)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	htmlStr := string(htmlBytes)
+
+	if strings.Contains(htmlStr, "testStreet, testCity, testState,") || !strings.Contains(htmlStr, testShelter.Name+" ("+testShelter.Email+")") {
+		t.Errorf("GetSingleSamaritan Failure - Expected html to contain samaritan name and email without location info, Actual: %s\n", htmlStr)
 	}
 }
 
@@ -100,12 +129,12 @@ func TestRenderAllSheltersTemplate(t *testing.T) {
 func generateShelter() *managers.User {
 	contactInfo := &managers.ContactInformation{
 		City:       testCity,
-		Country:    testCountry,
 		Name:       testName,
 		PostalCode: testPostalCode,
 		State:      testState,
 		Street:     testStreet,
+		Email:      testEmail,
 	}
 
-	return &managers.User{ContactInformation: contactInfo}
+	return &managers.User{ContactInformation: contactInfo, UserType: managers.SHELTER}
 }

@@ -8,7 +8,6 @@ var createItemTemplatePath = "items/new"
 var getItemTemplatePath = "items/item"
 var getItemsTemplatePath = "items/items"
 var updateItemsTemplatePath = "items/edit"
-var layoutTemplatePath = "home/layout"
 
 type ItemRetriever struct {
 	TemplateRetriever
