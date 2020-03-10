@@ -3,15 +3,12 @@
     <div class="card-header">
         User Info
     </div>
-    <!--This will be replaced by the templates in this branch-->
     <div class="card-body">
-        <h5 class="card-title">{{.User.Name}} ({{.User.Email}})</h5>
-        <h6 class="card-subtitle text-muted">
-            {{.User.Street}}, {{.User.City}}, {{.User.State}}, {{.User.PostalCode}}
-        </h6>
-        <br>
-        <a href="./{{.User.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
-        <button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
+        {{if eq .User.UserType 1}}
+        {{template "shelter-summary" .}}
+        {{else}}
+        {{template "samaritan-summary" .}}
+        {{end}}
     </div>
     <div class="card-footer text-muted">
         <a href="/shelters/" class="card-link">View All Shelters</a>

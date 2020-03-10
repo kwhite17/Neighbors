@@ -25,10 +25,32 @@ func initUserManager() *UserManager {
 	return &UserManager{Datasource: database.StandardDatasource{Database: dbToClose}}
 }
 
-func TestCanReadItsOwnUserWrite(t *testing.T) {
+func TestCanReadItsOwnShelterWrite(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
 	testUser := generateUser()
+	testUser.UserType = SHELTER
+
+	id, err := manager.WriteUser(context.Background(), testUser, "password")
+	if err != nil {
+		t.Error(err)
+	}
+	testUser.ID = id
+
+	actualUser, err := manager.GetUser(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(testUser, actualUser) {
+		t.Errorf("Expected %v to equal %v", actualUser, testUser)
+	}
+}
+func TestCanReadItsOwnSamaritanWrite(t *testing.T) {
+	manager := initUserManager()
+	defer cleanDatabase()
+	testUser := generateUser()
+	testUser.UserType = SAMARITAN
 
 	id, err := manager.WriteUser(context.Background(), testUser, "password")
 	if err != nil {

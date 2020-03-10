@@ -8,6 +8,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/assets"
 )
 
+const layoutTemplatePath = "home/layout"
+
 type TemplateRetriever interface {
 	RetrieveCreateEntityTemplate() (*template.Template, error)
 	RetrieveSingleEntityTemplate() (*template.Template, error)

@@ -160,17 +160,43 @@ func (handler UserServiceHandler) handleGetUser(w http.ResponseWriter, r *http.R
 }
 
 func (handler UserServiceHandler) handleGetSingleUser(w http.ResponseWriter, r *http.Request, userID string, userSession *managers.UserSession) {
-	id, _ := strconv.ParseInt(userID, 10, 64)
-	user, _ := handler.UserManager.GetUser(r.Context(), id)
+	id, err := strconv.ParseInt(userID, 10, 64)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	user, err := handler.UserManager.GetUser(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	items, _ := handler.ItemManager.GetItemsForShelter(r.Context(), id)
-	template, _ := handler.UserRetriever.RetrieveSingleEntityTemplate()
+	items, err := handler.ItemManager.GetItemsForShelter(r.Context(), id)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	template, err := handler.UserRetriever.RetrieveSingleEntityTemplate()
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
 	responseObject := make(map[string]interface{}, 0)
 	responseObject["User"] = user
 	responseObject["Items"] = items
 	responseObject["UserSession"] = userSession
-	template.Execute(w, responseObject)
+	err = template.Execute(w, responseObject)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 func (handler UserServiceHandler) handleGetAllUsers(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {

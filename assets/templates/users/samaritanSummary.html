@@ -1,0 +1,10 @@
+{{define "samaritan-summary"}}
+<h5 class="card-title">{{.User.Name}} ({{.User.Email}})</h5>
+<br>
+<a href="./{{.User.ID}}/edit" role="button" class="btn btn-primary card-link">Edit</a>
+{{if .UserSession}}
+{{if eq .UserSession.UserID .User.ID}}
+<button onclick="deleteShelter()" class="btn btn-danger card-link">Delete</button>
+{{end}}
+{{end}}
+{{end}}
