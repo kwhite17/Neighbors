@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -315,4 +316,12 @@ func getElementIDPathIndex(pathArray []string, method string) int {
 		return pathArraySize - 2
 	}
 	return pathArraySize - 1
+}
+
+func shouldSendUpdateNotification(previousItem *managers.Item, updatedItem *managers.Item, updater *managers.UserSession) bool {
+	if updater.UserType == managers.SAMARITAN {
+		return previousItem.Status != updatedItem.Status
+	}
+
+	return !reflect.DeepEqual(previousItem, updatedItem)
 }

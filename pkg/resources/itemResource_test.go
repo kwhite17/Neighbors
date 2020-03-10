@@ -349,3 +349,43 @@ func TestCanUpdateCreatedItemWhenSamaritanSessionAndItemUnclaimed(t *testing.T) 
 		t.Error("Expected samaritan to be authorized to update claimed item")
 	}
 }
+
+func TestShouldSendNotificationForStatusUpdateBySamaritan(t *testing.T) {
+	previousItem := &managers.Item{Status: managers.CREATED}
+	updatedItem := &managers.Item{Status: managers.CLAIMED}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN}
+
+	if !shouldSendUpdateNotification(previousItem, updatedItem, userSession) {
+		t.Error("Shelters should be notified if samaritan changes item status.")
+	}
+}
+
+func TestShouldNotSendNotificationForStatusUpdateBySamaritan(t *testing.T) {
+	previousItem := &managers.Item{Status: managers.CREATED}
+	updatedItem := &managers.Item{Status: managers.CREATED}
+	userSession := &managers.UserSession{UserType: managers.SAMARITAN}
+
+	if shouldSendUpdateNotification(previousItem, updatedItem, userSession) {
+		t.Error("Shelters should not be notified if samaritan does not change item status.")
+	}
+}
+
+func TestShouldNotSendNotificationForNoUpdateByShelter(t *testing.T) {
+	previousItem := &managers.Item{Status: managers.CREATED, Size: "M"}
+	updatedItem := &managers.Item{Status: managers.CREATED, Size: "M"}
+	userSession := &managers.UserSession{UserType: managers.SHELTER}
+
+	if shouldSendUpdateNotification(previousItem, updatedItem, userSession) {
+		t.Error("Samaritans should not be notified if shelter does not change item.")
+	}
+}
+
+func TestShouldSendNotificationForUpdateByShelter(t *testing.T) {
+	previousItem := &managers.Item{Status: managers.CREATED, Size: "M"}
+	updatedItem := &managers.Item{Status: managers.CREATED, Size: "L"}
+	userSession := &managers.UserSession{UserType: managers.SHELTER}
+
+	if !shouldSendUpdateNotification(previousItem, updatedItem, userSession) {
+		t.Error("Samaritans should be notified if samaritan changes item.")
+	}
+}

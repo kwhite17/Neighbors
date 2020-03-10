@@ -3,7 +3,7 @@ package retrievers
 import "html/template"
 import "github.com/kwhite17/Neighbors/pkg/managers"
 
-func statusAsString(status managers.ItemStatus) string {
+func StatusAsString(status managers.ItemStatus) string {
 	switch status {
 	case managers.CREATED:
 		return "CREATED"
@@ -20,6 +20,6 @@ func statusAsString(status managers.ItemStatus) string {
 
 func buildFuncMap() template.FuncMap {
 	return template.FuncMap{
-		"statusAsString": statusAsString,
+		"statusAsString": StatusAsString,
 	}
 }
