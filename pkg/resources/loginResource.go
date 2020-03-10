@@ -15,7 +15,7 @@ import (
 var serviceEndpoint = "/session/"
 
 type LoginServiceHandler struct {
-	UserSessionManager *managers.UserSessionManager
+	UserSessionManager managers.SessionManger
 	UserManager        *managers.UserManager
 	LoginRetriever     *retrievers.LoginRetriever
 }
@@ -88,19 +88,32 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 }
 
 func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
-	cookie, _ := r.Cookie("NeighborsAuth")
+	var userSession *managers.UserSession
+	var userSessionError error
+	cookie, cookieError := r.Cookie("NeighborsAuth")
+
+	if cookieError != nil {
+		userSession, userSessionError = nil, cookieError
+	} else {
+		userSession, userSessionError = lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	}
 
 	if r.Method == http.MethodGet || r.Method == http.MethodPost {
-		return true, nil
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
+		return true, userSession
 	}
 
 	if cookie == nil || r.Method != http.MethodDelete {
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
 		return false, nil
 	}
 
-	userSession, err := lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-	if err != nil || userSession == nil {
-		log.Println(err)
+	if userSessionError != nil || userSession == nil {
+		log.Println(userSessionError)
 		return false, nil
 	}
 

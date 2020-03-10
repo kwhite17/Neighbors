@@ -19,7 +19,7 @@ var usersEndpoint = "/shelters/"
 type UserServiceHandler struct {
 	UserManager        *managers.UserManager
 	ItemManager        *managers.ItemManager
-	UserSessionManager *managers.UserSessionManager
+	UserSessionManager managers.SessionManger
 	UserRetriever      *retrievers.ShelterRetriever
 }
 
@@ -208,21 +208,34 @@ func (handler UserServiceHandler) buildContactInformation(createData map[string]
 }
 
 func (handler UserServiceHandler) isAuthorized(r *http.Request) (bool, *managers.UserSession) {
-	cookie, _ := r.Cookie("NeighborsAuth")
+	var userSession *managers.UserSession
+	var userSessionError error
+	cookie, cookieError := r.Cookie("NeighborsAuth")
 	pathArray := strings.Split(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/")
 
+	if cookieError != nil {
+		userSession, userSessionError = nil, cookieError
+	} else {
+		userSession, userSessionError = handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	}
+
 	if r.Method == http.MethodGet && pathArray[len(pathArray)-1] != "edit" {
-		return true, nil
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
+		return true, userSession
 	}
 
 	if cookie == nil && r.Method == http.MethodPost {
-		return true, nil
+		if userSessionError != nil {
+			log.Println(userSessionError)
+		}
+		return true, userSession
 	}
 
-	userSession, err := handler.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
-	if err != nil {
-		log.Println(err)
-		return err == sql.ErrNoRows && r.Method == http.MethodPost, userSession
+	if userSessionError != nil {
+		log.Println(userSessionError)
+		return userSessionError == sql.ErrNoRows && r.Method == http.MethodPost, userSession
 	}
 
 	userID, err := strconv.ParseInt(pathArray[getElementIDPathIndex(pathArray, r.Method)], 10, strconv.IntSize)

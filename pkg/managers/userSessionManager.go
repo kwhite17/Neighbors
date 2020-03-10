@@ -15,6 +15,13 @@ var deleteUserSessionQuery = "DELETE FROM userSessions WHERE SessionKey=$1"
 var getUserSessionQuery = "SELECT SessionKey, UserID, UserType, LoginTime, LastSeenTime FROM userSessions WHERE SessionKey=$1"
 var updateUserSessionQuery = "UPDATE userSessions SET LoginTime = $1, LastSeenTime = $2 WHERE UserID = $3"
 
+type SessionManger interface {
+	GetUserSession(ctx context.Context, sessionKey interface{}) (*UserSession, error)
+	WriteUserSession(ctx context.Context, userID int64, userType UserType) (string, error)
+	UpdateUserSession(ctx context.Context, userID int64, loginTime int64, lastSeenTime int64) error
+	DeleteUserSession(ctx context.Context, sessionKey interface{}) (int64, error)
+}
+
 type UserSessionManager struct {
 	Datasource database.Datasource
 }
