@@ -4,6 +4,7 @@
 <form id="editForm">
     <input type="hidden" name="id" value={{.Item.ID}}>
     <input type="hidden" name="shelterId" value={{.Item.ShelterID}}>
+    <input type="hidden" name="samaritanId" value={{.Item.SamaritanID}}>
     <div class="form-group">
         <label for="itemCategory">Category</label>
         <select id="itemCategory" class="form-control" name="category">
@@ -62,6 +63,9 @@
             ID: Number(formElements.namedItem('id').value),
             ShelterID: Number(formElements.namedItem('shelterId').value),
         };
+
+        var samaritanID = Number(formElements.namedItem('samaritanId').value);
+        elementUpdate.SamaritanID = samaritanID < 1 ? null : samaritanID;
 
         req.open("PUT", putPath);
         req.onreadystatechange = function () {

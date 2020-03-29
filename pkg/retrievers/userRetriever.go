@@ -5,8 +5,8 @@ import (
 )
 
 var createShelterTemplatePath = "users/new"
-var getShelterTemplatePath = "users/shelter"
-var getSheltersTemplatePath = "users/shelters"
+var getShelterTemplatePath = "users/user"
+var getSheltersTemplatePath = "users/users"
 var getSamaritanSummaryTemplatePath = "users/samaritanSummary"
 var getShelterSummaryTemplatePath = "users/shelterSummary"
 var updateSheltersTemplatePath = "users/edit"

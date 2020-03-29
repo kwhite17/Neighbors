@@ -8,14 +8,17 @@ import (
 )
 
 type ItemUpdate struct {
+	PreviousItem   *managers.Item
 	CategoryUpdate string
 	GenderUpdate   string
 	QuantityUpdate string
 	SizeUpdate     string
 	StatusUpdate   string
+	Recipient      *managers.User
+	Updater        *managers.User
 }
 
-func BuildItemUpdate(previousItem *managers.Item, updatedItem *managers.Item) *ItemUpdate {
+func BuildItemUpdate(previousItem *managers.Item, updatedItem *managers.Item, recipient *managers.User, updater *managers.User) *ItemUpdate {
 	itemUpdate := &ItemUpdate{}
 	if previousItem.Category != updatedItem.Category {
 		itemUpdate.CategoryUpdate = previousItem.Category + " -> " + updatedItem.Category
@@ -37,24 +40,28 @@ func BuildItemUpdate(previousItem *managers.Item, updatedItem *managers.Item) *I
 		itemUpdate.StatusUpdate = retrievers.StatusAsString(previousItem.Status) + " -> " + retrievers.StatusAsString(updatedItem.Status)
 	}
 
+	itemUpdate.Recipient = recipient
+	itemUpdate.Updater = updater
+	itemUpdate.PreviousItem = previousItem
 	return itemUpdate
 }
 
 func formatEmailBody(itemUpdate *ItemUpdate) string {
-	emailBody := "Item Upate Details: \n"
+	emailBody := "Updates on current request for: " + strconv.Itoa(int(itemUpdate.PreviousItem.Quantity)) +
+		" " + itemUpdate.PreviousItem.Category + "\n"
 	if itemUpdate.CategoryUpdate != "" {
 		emailBody = emailBody + "Category: " + itemUpdate.CategoryUpdate + "\n"
 	}
 	if itemUpdate.GenderUpdate != "" {
 		emailBody = emailBody + "Gender: " + itemUpdate.GenderUpdate + "\n"
 	}
-	if itemUpdate.CategoryUpdate != "" {
-		emailBody = emailBody + "Category: " + itemUpdate.QuantityUpdate + "\n"
+	if itemUpdate.QuantityUpdate != "" {
+		emailBody = emailBody + "Quantity: " + itemUpdate.QuantityUpdate + "\n"
 	}
-	if itemUpdate.CategoryUpdate != "" {
+	if itemUpdate.SizeUpdate != "" {
 		emailBody = emailBody + "Size: " + itemUpdate.SizeUpdate + "\n"
 	}
-	if itemUpdate.CategoryUpdate != "" {
+	if itemUpdate.StatusUpdate != "" {
 		emailBody = emailBody + "Status: " + itemUpdate.StatusUpdate + "\n"
 	}
 
