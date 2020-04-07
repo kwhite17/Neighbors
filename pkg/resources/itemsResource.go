@@ -4,9 +4,12 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/kwhite17/Neighbors/pkg/email"
 
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
@@ -18,6 +21,7 @@ type ItemServiceHandler struct {
 	ItemManager        *managers.ItemManager
 	ItemRetriever      *retrievers.ItemRetriever
 	UserSessionManager managers.SessionManger
+	EmailSender        email.EmailSender
 }
 
 func (handler ItemServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -102,7 +106,7 @@ func (handler ItemServiceHandler) requestMethodHandler(w http.ResponseWriter, r 
 	case http.MethodDelete:
 		handler.handleDeleteItem(w, r)
 	case http.MethodPut:
-		handler.handleUpdateItem(w, r)
+		handler.handleUpdateItem(w, r, userSession)
 	default:
 		w.WriteHeader(http.StatusMethodNotAllowed)
 	}
@@ -182,13 +186,26 @@ func (handler ItemServiceHandler) handleGetAllItems(w http.ResponseWriter, r *ht
 	template.Execute(w, responseObject)
 }
 
-func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request) {
+func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *http.Request, userSession *managers.UserSession) {
 	item := &managers.Item{}
 	err := json.NewDecoder(r.Body).Decode(item)
 	if err != nil {
 		log.Println(err)
 		w.WriteHeader(http.StatusInternalServerError)
 		return
+	}
+
+	previousItem, err := handler.ItemManager.GetItem(r.Context(), item.ID)
+	if err != nil {
+		log.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	if item.Status == managers.CREATED {
+		item.SamaritanID = 0
+	} else if userSession.UserType == managers.SAMARITAN {
+		item.SamaritanID = userSession.UserID
 	}
 
 	err = handler.ItemManager.UpdateItem(r.Context(), item)
@@ -199,6 +216,12 @@ func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *htt
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+	if shouldSendUpdateNotification(previousItem, item, userSession) {
+		err = handler.EmailSender.DeliverEmail(r.Context(), previousItem, item, userSession)
+		if err != nil {
+			log.Println(err)
+		}
+	}
 }
 
 func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
@@ -315,4 +338,12 @@ func getElementIDPathIndex(pathArray []string, method string) int {
 		return pathArraySize - 2
 	}
 	return pathArraySize - 1
+}
+
+func shouldSendUpdateNotification(previousItem *managers.Item, updatedItem *managers.Item, updater *managers.UserSession) bool {
+	if updater.UserType == managers.SAMARITAN {
+		return previousItem.Status != updatedItem.Status
+	}
+
+	return !reflect.DeepEqual(previousItem, updatedItem)
 }

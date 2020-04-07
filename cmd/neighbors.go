@@ -6,11 +6,31 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/kwhite17/Neighbors/pkg/database"
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/resources"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
+
+	"github.com/kwhite17/Neighbors/pkg/database"
+	"github.com/kwhite17/Neighbors/pkg/email"
+	"github.com/sendgrid/sendgrid-go"
+	"gopkg.in/gomail.v2"
 )
+
+type EnvironmentConfig struct {
+	Datasource  database.Datasource
+	EmailSender email.EmailSender
+}
+
+func BuildDatasource(driver string, host string, developmentMode bool) database.Datasource {
+	return database.BuildDatasource(driver, host, developmentMode)
+}
+
+func BuildEmailSender(developmentMode bool, userManager *managers.UserManager) email.EmailSender {
+	if developmentMode {
+		return &email.LocalSender{Dialer: &gomail.Dialer{Host: "localhost", Port: 25}, UserManager: userManager}
+	}
+	return &email.SendGridSender{Client: sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY")), UserManager: userManager}
+}
 
 func main() {
 	driver := flag.String("dbDriver", "sqlite3", "Name of database driver to use")
@@ -27,14 +47,16 @@ func main() {
 	log.Println("Connecting to host", dbHost)
 	log.Println("Development mode set to:", *developmentMode)
 
-	neighborsDatasource := database.BuildDatasource(*driver, dbHost, *developmentMode)
-	userManager := &managers.UserManager{Datasource: neighborsDatasource}
-	itemManager := &managers.ItemManager{Datasource: neighborsDatasource}
-	userSessionManager := &managers.UserSessionManager{Datasource: neighborsDatasource}
+	environment := &EnvironmentConfig{}
+	environment.Datasource = BuildDatasource(*driver, dbHost, *developmentMode)
+	userManager := &managers.UserManager{Datasource: environment.Datasource}
+	itemManager := &managers.ItemManager{Datasource: environment.Datasource}
+	userSessionManager := &managers.UserSessionManager{Datasource: environment.Datasource}
+	environment.EmailSender = BuildEmailSender(*developmentMode, userManager)
 
 	mux := http.NewServeMux()
 	mux.Handle("/shelters/", buildUserServiceHandler(userManager, userSessionManager, itemManager))
-	mux.Handle("/items/", buildItemServiceHandler(userSessionManager, itemManager))
+	mux.Handle("/items/", buildItemServiceHandler(userSessionManager, itemManager, userManager, environment))
 	mux.Handle("/session/", buildLoginServiceHandler(userManager, userSessionManager))
 	mux.Handle("/", buildHomeServiceHandler(userSessionManager))
 	http.ListenAndServe(":"+port, mux)
@@ -55,11 +77,12 @@ func buildUserServiceHandler(userManager *managers.UserManager, userSessionManag
 	}
 }
 
-func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager) resources.ItemServiceHandler {
+func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager, userManager *managers.UserManager, environment *EnvironmentConfig) resources.ItemServiceHandler {
 	return resources.ItemServiceHandler{
 		ItemRetriever:      &retrievers.ItemRetriever{},
 		ItemManager:        itemManager,
 		UserSessionManager: userSessionManager,
+		EmailSender:        environment.EmailSender,
 	}
 }
 
