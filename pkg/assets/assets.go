@@ -167,7 +167,7 @@ func assetsTemplatesHomeLayoutHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/home/layout.html", size: 5207, mode: os.FileMode(511), modTime: time.Unix(1585445324, 0)}
+	info := bindataFileInfo{name: "assets/templates/home/layout.html", size: 5207, mode: os.FileMode(511), modTime: time.Unix(1586223492, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }
@@ -207,7 +207,7 @@ func assetsTemplatesItemsEditHtml() (*asset, error) {
 		return nil, err
 	}
 
-	info := bindataFileInfo{name: "assets/templates/items/edit.html", size: 3977, mode: os.FileMode(511), modTime: time.Unix(1583895228, 0)}
+	info := bindataFileInfo{name: "assets/templates/items/edit.html", size: 3977, mode: os.FileMode(511), modTime: time.Unix(1586223492, 0)}
 	a := &asset{bytes: bytes, info: info}
 	return a, nil
 }

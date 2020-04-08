@@ -215,13 +215,13 @@ func (handler ItemServiceHandler) handleUpdateItem(w http.ResponseWriter, r *htt
 		return
 	}
 
-	w.WriteHeader(http.StatusNoContent)
 	if shouldSendUpdateNotification(previousItem, item, userSession) {
 		err = handler.EmailSender.DeliverEmail(r.Context(), previousItem, item, userSession)
 		if err != nil {
 			log.Println(err)
 		}
 	}
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (handler ItemServiceHandler) handleDeleteItem(w http.ResponseWriter, r *http.Request) {
