@@ -9,11 +9,11 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/resources"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
+	"gopkg.in/gomail.v2"
 
 	"github.com/kwhite17/Neighbors/pkg/database"
 	"github.com/kwhite17/Neighbors/pkg/email"
 	"github.com/sendgrid/sendgrid-go"
-	"gopkg.in/gomail.v2"
 )
 
 type EnvironmentConfig struct {
