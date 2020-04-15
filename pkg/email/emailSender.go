@@ -3,6 +3,7 @@ package email
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/sendgrid/sendgrid-go"
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
@@ -10,6 +11,8 @@ import (
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"gopkg.in/gomail.v2"
 )
+
+const SENDGRID_SENDER_EMAIL = "neighbors@massally.org"
 
 type EmailSender interface {
 	DeliverEmail(ctx context.Context, previousItem *managers.Item, currentItem *managers.Item, userSession *managers.UserSession) error
@@ -93,11 +96,14 @@ func (ss *SendGridSender) DeliverEmail(ctx context.Context, previousItem *manage
 }
 
 func (ss *SendGridSender) sendEmail(itemUpdate *ItemUpdate) error {
-	from := mail.NewEmail(itemUpdate.Updater.Name, itemUpdate.Updater.Email)
+	from := mail.NewEmail(itemUpdate.Updater.Name+" ("+itemUpdate.Updater.Email+") via "+SENDGRID_SENDER_EMAIL, SENDGRID_SENDER_EMAIL)
 	to := mail.NewEmail(itemUpdate.Recipient.Name, itemUpdate.Recipient.Email)
 	plainTextContent := formatEmailBody(itemUpdate)
 	htmlContent := "<div>" + plainTextContent + "</div>"
 	message := mail.NewSingleEmail(from, "Item Updated by "+itemUpdate.Updater.Name+"!", to, plainTextContent, htmlContent)
-	_, err := ss.Client.Send(message)
+	response, err := ss.Client.Send(message)
+	if response.StatusCode > 299 {
+		log.Println(response)
+	}
 	return err
 }
