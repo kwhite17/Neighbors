@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 
+	"github.com/gorilla/mux"
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/resources"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
@@ -21,15 +22,19 @@ type EnvironmentConfig struct {
 	EmailSender email.EmailSender
 }
 
-func BuildDatasource(driver string, host string, developmentMode bool) database.Datasource {
+func buildDatasource(driver string, host string, developmentMode bool) database.Datasource {
 	return database.BuildDatasource(driver, host, developmentMode)
 }
 
-func BuildEmailSender(developmentMode bool, userManager *managers.UserManager) email.EmailSender {
+func buildEmailSender(developmentMode bool, userManager *managers.UserManager) email.EmailSender {
 	if developmentMode {
 		return &email.LocalSender{Dialer: &gomail.Dialer{Host: "localhost", Port: 25}, UserManager: userManager}
 	}
 	return &email.SendGridSender{Client: sendgrid.NewSendClient(os.Getenv("SENDGRID_API_KEY")), UserManager: userManager}
+}
+
+func buildEnvironment(datasource database.Datasource, emailSender email.EmailSender) *EnvironmentConfig {
+	return &EnvironmentConfig{Datasource: datasource, EmailSender: emailSender}
 }
 
 func main() {
@@ -47,19 +52,18 @@ func main() {
 	log.Println("Connecting to host", dbHost)
 	log.Println("Development mode set to:", *developmentMode)
 
-	environment := &EnvironmentConfig{}
-	environment.Datasource = BuildDatasource(*driver, dbHost, *developmentMode)
-	userManager := &managers.UserManager{Datasource: environment.Datasource}
-	itemManager := &managers.ItemManager{Datasource: environment.Datasource}
-	userSessionManager := &managers.UserSessionManager{Datasource: environment.Datasource}
-	environment.EmailSender = BuildEmailSender(*developmentMode, userManager)
+	datasource := buildDatasource(*driver, dbHost, *developmentMode)
+	userManager := &managers.UserManager{Datasource: datasource}
+	itemManager := &managers.ItemManager{Datasource: datasource}
+	userSessionManager := &managers.UserSessionManager{Datasource: datasource}
+	environment := buildEnvironment(datasource, buildEmailSender(*developmentMode, userManager))
 
-	mux := http.NewServeMux()
-	mux.Handle("/shelters/", buildUserServiceHandler(userManager, userSessionManager, itemManager))
-	mux.Handle("/items/", buildItemServiceHandler(userSessionManager, itemManager, userManager, environment))
-	mux.Handle("/session/", buildLoginServiceHandler(userManager, userSessionManager))
-	mux.Handle("/", buildHomeServiceHandler(userSessionManager))
-	http.ListenAndServe(":"+port, mux)
+	router := mux.NewRouter()
+	router.PathPrefix("/shelters").Handler(buildUserServiceHandler(userSessionManager, userManager, itemManager))
+	router.PathPrefix("/items").Handler(buildItemServiceHandler(userSessionManager, itemManager, environment))
+	router.PathPrefix("/session").Handler(buildLoginServiceHandler(userSessionManager, userManager))
+	router.PathPrefix("/").Handler(buildHomeServiceHandler(userSessionManager))
+	http.ListenAndServe(":"+port, router)
 }
 
 func buildHomeServiceHandler(userSessionManager *managers.UserSessionManager) resources.HomeServiceHandler {
@@ -68,25 +72,25 @@ func buildHomeServiceHandler(userSessionManager *managers.UserSessionManager) re
 	}
 }
 
-func buildUserServiceHandler(userManager *managers.UserManager, userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager) resources.UserServiceHandler {
+func buildUserServiceHandler(userSessionManager *managers.UserSessionManager, userManager *managers.UserManager, itemManager *managers.ItemManager) resources.UserServiceHandler {
 	return resources.UserServiceHandler{
-		UserRetriever:      &retrievers.ShelterRetriever{},
+		UserSessionManager: userSessionManager,
 		UserManager:        userManager,
-		UserSessionManager: userSessionManager,
 		ItemManager:        itemManager,
+		UserRetriever:      &retrievers.ShelterRetriever{},
 	}
 }
 
-func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager, userManager *managers.UserManager, environment *EnvironmentConfig) resources.ItemServiceHandler {
+func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, itemManager *managers.ItemManager, environment *EnvironmentConfig) resources.ItemServiceHandler {
 	return resources.ItemServiceHandler{
-		ItemRetriever:      &retrievers.ItemRetriever{},
-		ItemManager:        itemManager,
 		UserSessionManager: userSessionManager,
+		ItemManager:        itemManager,
 		EmailSender:        environment.EmailSender,
+		ItemRetriever:      &retrievers.ItemRetriever{},
 	}
 }
 
-func buildLoginServiceHandler(userManager *managers.UserManager, userSessionManager *managers.UserSessionManager) resources.LoginServiceHandler {
+func buildLoginServiceHandler(userSessionManager *managers.UserSessionManager, userManager *managers.UserManager) resources.LoginServiceHandler {
 	return resources.LoginServiceHandler{
 		UserManager:        userManager,
 		UserSessionManager: userSessionManager,
