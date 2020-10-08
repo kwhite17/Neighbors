@@ -41,7 +41,7 @@ func TestRenderItemTemplate(t *testing.T) {
 
 	htmlStr := string(htmlBytes)
 
-	if !strings.Contains(htmlStr, "<p class=\"card-text\">Status: CLAIMED</p>") || !strings.Contains(htmlStr, statusAsString(testItem.Status)) {
+	if !strings.Contains(htmlStr, "<p class=\"card-text\">Status: CLAIMED</p>") || !strings.Contains(htmlStr, StatusAsString(testItem.Status)) {
 		t.Errorf("TestRenderItemTemplate Failure - Expected html to contain 'strong' or correct status, Actual: %s\n", htmlStr)
 	}
 }
@@ -93,8 +93,8 @@ func TestRenderAllItemsTemplate(t *testing.T) {
 
 	htmlStr := string(htmlBytes)
 
-	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, statusAsString(testItem.Status)) {
-		t.Errorf("TestRenderAllItemsTemplate Failure - Expected html to contain 'strong' or correct status: %s, Actual: %s\n", statusAsString(testItem.Status), htmlStr)
+	if !strings.Contains(htmlStr, "table") || !strings.Contains(htmlStr, StatusAsString(testItem.Status)) {
+		t.Errorf("TestRenderAllItemsTemplate Failure - Expected html to contain 'strong' or correct status: %s, Actual: %s\n", StatusAsString(testItem.Status), htmlStr)
 	}
 }
 func generateItem() *managers.Item {
