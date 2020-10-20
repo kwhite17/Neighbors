@@ -25,17 +25,18 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="javascript: void(0);" id="neighbors-dropdown"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Neighbors</a>
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Items</a>
                     <div class="dropdown-menu" aria-labelledby="neighbors-dropdown">
-                        <a class="dropdown-item" href="/items/">View Items</a>
+                        <a class="dropdown-item" href="/items/">View Available</a>
                     </div>
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" href="javascript: void(0);" id="shelter-dropdown"
-                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Users</a>
+                        data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">Profile</a>
                     <div class="dropdown-menu" aria-labelledby="shelter-dropdown">
                         {{if .UserSession}}
                         {{if gt .UserSession.UserID 0}}
+                        <a class="dropdown-item" href="/shelters/{{.UserSession.UserID}}">View</a>
                         <a class="dropdown-item" href="javascript: logout(0);">Logout</a>
                         {{else}}
                         <a class="dropdown-item" href="/session/login/">Login</a>
@@ -48,11 +49,6 @@
                     </div>
                 </li>
             </ul>
-
-            <form class="form-inline my-2 my-lg-0">
-                <input class="form-control mr-sm-2" type="text" placeholder="Search" aria-label="Search" />
-                <button class="btn btn-secondary my-2 my-sm-0" type="submit">Search</button>
-            </form>
         </div>
     </nav>
 

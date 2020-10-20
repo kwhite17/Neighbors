@@ -10,9 +10,6 @@
         {{template "samaritan-summary" .}}
         {{end}}
     </div>
-    <div class="card-footer text-muted">
-        <a href="/shelters/" class="card-link">View All Shelters</a>
-    </div>
 </div>
 <table class="table table-striped">
     <thead class="thead-dark">
@@ -32,7 +29,11 @@
             Status
         </th>
         <th>
+            {{if eq .User.UserType 1}}
             <a class="btn btn-small btn-outline-primary" role="button" href="/items/new">New Item</a>
+            {{else}}
+            <a class="btn btn-small btn-outline-primary" role="button" href="/items/">View Items</a>
+            {{end}}
         </th>
     </thead>
     <tbody>
@@ -42,7 +43,7 @@
             <td>{{ $element.Gender }}</td>
             <td>{{ $element.Size }}</td>
             <td>{{ $element.Quantity }}</td>
-            <td>{{ $element.Status }}</td>
+            <td>{{ statusAsString $element.Status }}</td>
             <td><a href="/items/{{ $element.ID }}" role="button" class="btn btn-info">View</a></td>
         </tr>
         {{end}}
