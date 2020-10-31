@@ -11,8 +11,10 @@ import (
 var createUserQuery = "INSERT INTO users (City, Email, Name, Password, PostalCode, State, Street, UserType) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)"
 var deleteUserQuery = "DELETE FROM users WHERE ID=$1"
 var getSingleUserQuery = "SELECT ID, City, Email, Name, PostalCode, State, Street, UserType FROM users where ID=$1"
+var getSingleUserByEmailQuery = "SELECT ID, City, Email, Name, PostalCode, State, Street, UserType FROM users where Email=$1"
 var getAllSheltersQuery = "SELECT ID, City, Email, Name, PostalCode, State, Street, UserType FROM users WHERE UserType=1"
 var updateUserQuery = "UPDATE users SET City = $1, Email = $2, Name = $3, PostalCode = $4, State = $5, Street = $6 WHERE ID = $7"
+var updatePasswordByEmailQuery = "UPDATE users SET Password = $1 WHERE Email = $2"
 var getPasswordForUsernameQuery = "SELECT ID, Password, UserType FROM users WHERE Name = $1"
 
 type UserManager struct {
@@ -91,6 +93,25 @@ func (um *UserManager) GetUser(ctx context.Context, id interface{}) (*User, erro
 
 	return user[0], nil
 }
+func (um *UserManager) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+	result, err := um.Datasource.ExecuteBatchReadQuery(ctx, getSingleUserByEmailQuery, []interface{}{email})
+
+	if err != nil {
+		return nil, err
+	}
+
+	user, err := um.buildUsers(result)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if len(user) < 1 {
+		return nil, nil
+	}
+
+	return user[0], nil
+}
 
 func (um *UserManager) GetPasswordForUsername(ctx context.Context, username string) (*User, error) {
 	row := um.Datasource.ExecuteSingleReadQuery(ctx, getPasswordForUsernameQuery, []interface{}{username})
@@ -134,6 +155,17 @@ func (um *UserManager) WriteUser(ctx context.Context, user *User, unencryptedPas
 func (um *UserManager) UpdateUser(ctx context.Context, user *User) error {
 	values := []interface{}{user.City, user.Email, user.Name, user.PostalCode, user.State, user.Street, user.ID}
 	_, err := um.Datasource.ExecuteWriteQuery(ctx, updateUserQuery, values, true)
+	return err
+}
+
+func (um *UserManager) UpdatePasswordForUser(ctx context.Context, email string, unencryptedPassword string) error {
+	encryptedPassword, err := um.encryptPassword(unencryptedPassword)
+	if err != nil {
+		return err
+	}
+
+	values := []interface{}{encryptedPassword, email}
+	_, err = um.Datasource.ExecuteWriteQuery(ctx, updatePasswordByEmailQuery, values, true)
 	return err
 }
 

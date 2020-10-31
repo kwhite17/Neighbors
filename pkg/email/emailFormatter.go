@@ -18,6 +18,15 @@ type ItemUpdate struct {
 	Updater        *managers.User
 }
 
+type PasswordReset struct {
+	Recipient    *managers.User
+	TempPassword string
+}
+
+func BuildPasswordReset(recipient *managers.User, tempPassword string) *PasswordReset {
+	return &PasswordReset{Recipient: recipient, TempPassword: tempPassword}
+}
+
 func BuildItemUpdate(previousItem *managers.Item, updatedItem *managers.Item, recipient *managers.User, updater *managers.User) *ItemUpdate {
 	itemUpdate := &ItemUpdate{}
 	if previousItem.Category != updatedItem.Category {
@@ -66,4 +75,9 @@ func formatEmailBody(itemUpdate *ItemUpdate) string {
 	}
 
 	return emailBody
+}
+
+func formatPasswordResetEmailBody(passwordReset *PasswordReset) string {
+	return "Hello " + passwordReset.Recipient.Name + ",\n\n" + "We've reset your password as requested to: " + passwordReset.TempPassword + ". " +
+		"We recommend you change this as soon as possible. Have a nice day!"
 }

@@ -2,22 +2,38 @@ package resources
 
 import (
 	"encoding/json"
+	"html/template"
 	"log"
+	"math/rand"
 	"net/http"
+	"strings"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 
+	"github.com/kwhite17/Neighbors/pkg/email"
 	"github.com/kwhite17/Neighbors/pkg/managers"
 	"github.com/kwhite17/Neighbors/pkg/retrievers"
 )
 
+const RESET_PASSWORD_LENGTH = 12
+
 var serviceEndpoint = "/session/"
+var alphaNumericRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
+
+func GenerateResetPassword(n int) string {
+	b := make([]rune, n)
+	for i := range b {
+		b[i] = alphaNumericRunes[rand.Intn(len(alphaNumericRunes))]
+	}
+	return string(b)
+}
 
 type LoginServiceHandler struct {
 	UserSessionManager managers.SessionManger
 	UserManager        *managers.UserManager
 	LoginRetriever     *retrievers.LoginRetriever
+	EmailSender        email.EmailSender
 }
 
 func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +51,15 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 
 	switch r.Method {
 	case "GET":
-		t, err := lsh.LoginRetriever.RetrieveSingleEntityTemplate()
+		pathArray := strings.Split(strings.TrimSuffix(strings.TrimPrefix(r.URL.Path, usersEndpoint), "/"), "/")
+		path := pathArray[len(pathArray)-1]
+		var t *template.Template
+		var err error
+		if path == "reset" {
+			t, err = lsh.LoginRetriever.RetrieveEditEntityTemplate()
+		} else {
+			t, err = lsh.LoginRetriever.RetrieveSingleEntityTemplate()
+		}
 
 		if err != nil {
 			log.Println(err)
@@ -82,6 +106,37 @@ func (lsh LoginServiceHandler) ServeHTTP(w http.ResponseWriter, r *http.Request)
 		shelter.Password = ""
 		http.SetCookie(w, &cookie)
 		json.NewEncoder(w).Encode(shelter)
+	case "PUT":
+		resetData := make(map[string]string, 0)
+		err := json.NewDecoder(r.Body).Decode(&resetData)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		emailAddress := resetData["Email"]
+		unencryptedPassword := GenerateResetPassword(RESET_PASSWORD_LENGTH)
+		err = lsh.UserManager.UpdatePasswordForUser(r.Context(), emailAddress, unencryptedPassword)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		user, err := lsh.UserManager.GetUserByEmail(r.Context(), emailAddress)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+
+		err = lsh.EmailSender.DeliverPasswordResetEmail(r.Context(), user, unencryptedPassword)
+		if err != nil {
+			log.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 	}
@@ -96,6 +151,10 @@ func (lsh LoginServiceHandler) isAuthorized(r *http.Request) (bool, *managers.Us
 		userSession, userSessionError = nil, cookieError
 	} else {
 		userSession, userSessionError = lsh.UserSessionManager.GetUserSession(r.Context(), cookie.Value)
+	}
+
+	if r.Method == http.MethodPut {
+		return true, nil
 	}
 
 	if r.Method == http.MethodGet || r.Method == http.MethodPost {
