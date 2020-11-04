@@ -5,7 +5,10 @@ import (
 	"html/template"
 )
 
-var loginTemplatePath = "login/login"
+var templatePaths = map[string]string{
+	"reset": "login/reset",
+	"login": "login/login",
+}
 
 type LoginRetriever struct {
 	TemplateRetriever
@@ -16,7 +19,7 @@ func (lr LoginRetriever) RetrieveCreateEntityTemplate() (*template.Template, err
 }
 
 func (lr LoginRetriever) RetrieveSingleEntityTemplate() (*template.Template, error) {
-	return RetrieveMultiTemplate(layoutTemplatePath, loginTemplatePath)
+	return RetrieveMultiTemplate(layoutTemplatePath, templatePaths["login"])
 }
 
 func (lr LoginRetriever) RetrieveAllEntitiesTemplate() (*template.Template, error) {
@@ -24,5 +27,5 @@ func (lr LoginRetriever) RetrieveAllEntitiesTemplate() (*template.Template, erro
 }
 
 func (lr LoginRetriever) RetrieveEditEntityTemplate() (*template.Template, error) {
-	return nil, fmt.Errorf("UnsupportedOperation")
+	return RetrieveMultiTemplate(layoutTemplatePath, templatePaths["reset"])
 }

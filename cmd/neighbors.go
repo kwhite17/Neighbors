@@ -61,7 +61,7 @@ func main() {
 	router := mux.NewRouter()
 	router.PathPrefix("/shelters").Handler(buildUserServiceHandler(userSessionManager, userManager, itemManager))
 	router.PathPrefix("/items").Handler(buildItemServiceHandler(userSessionManager, itemManager, environment))
-	router.PathPrefix("/session").Handler(buildLoginServiceHandler(userSessionManager, userManager))
+	router.PathPrefix("/session").Handler(buildLoginServiceHandler(userSessionManager, userManager, environment))
 	router.PathPrefix("/").Handler(buildHomeServiceHandler(userSessionManager))
 	http.ListenAndServe(":"+port, router)
 }
@@ -90,10 +90,11 @@ func buildItemServiceHandler(userSessionManager *managers.UserSessionManager, it
 	}
 }
 
-func buildLoginServiceHandler(userSessionManager *managers.UserSessionManager, userManager *managers.UserManager) resources.LoginServiceHandler {
+func buildLoginServiceHandler(userSessionManager *managers.UserSessionManager, userManager *managers.UserManager, environment *EnvironmentConfig) resources.LoginServiceHandler {
 	return resources.LoginServiceHandler{
 		UserManager:        userManager,
 		UserSessionManager: userSessionManager,
 		LoginRetriever:     &retrievers.LoginRetriever{},
+		EmailSender:        environment.EmailSender,
 	}
 }

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     State VARCHAR(100) NULL,
     Street VARCHAR(100) NULL,
     UserType TINYINT NOT NULL DEFAULT 1,
+    CONSTRAINT idx_users_email UNIQUE (Email),
     FOREIGN KEY(UserType) REFERENCES userTypes(ID) ON DELETE CASCADE
 );
 

@@ -1,0 +1,37 @@
+{{define "main-content"}}
+<h1>Password Reset</h1>
+<br>
+<form id="resetForm">
+    <div class="form-group">
+        <label for="userEmail">Please Enter Your Email</label>
+        <input type="text" id="userEmail" class="form-control" name="email" placeholder="Email Address">
+    </div>
+    <button type="button" class="btn btn-primary" onclick="resetPassword()">Reset Password</button>
+</form>
+{{end}}
+
+{{define "script-content"}}
+<script type="text/javascript">
+    var resetPassword = function () {
+        var req = new XMLHttpRequest();
+        var formElements = document.getElementById('resetForm').elements;
+        var resetUpdate = {
+            Email: formElements.namedItem('email').value,
+        };
+
+        req.open("PUT", window.location.origin + '/session/reset/');
+        req.onreadystatechange = function () {
+            if (req.readyState === 4 && req.status === 204) {
+                window.location = window.location.origin;
+                return false;
+            } else if (req.readyState === 4 && req.status !== 204) {
+                alert("Failed to reset password!");
+                return false;
+            }
+        };
+
+        req.send(JSON.stringify(resetUpdate));
+        return false;
+    };
+</script>
+{{end}}

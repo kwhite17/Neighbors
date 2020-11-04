@@ -3,6 +3,7 @@ package managers
 import (
 	"context"
 	"database/sql"
+	"fmt"
 	"reflect"
 	"strconv"
 	"testing"
@@ -12,7 +13,7 @@ import (
 )
 
 var testCity = "testCity"
-var testEmail = "test@test.com"
+var testEmail = "test%v@test.com"
 var testName = "testName"
 var testPostalCode = "testPostalCode"
 var testState = "testState"
@@ -28,7 +29,7 @@ func initUserManager() *UserManager {
 func TestCanReadItsOwnShelterWrite(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
-	testUser := generateUser()
+	testUser := generateUser(0)
 	testUser.UserType = SHELTER
 
 	id, err := manager.WriteUser(context.Background(), testUser, "password")
@@ -46,10 +47,32 @@ func TestCanReadItsOwnShelterWrite(t *testing.T) {
 		t.Errorf("Expected %v to equal %v", actualUser, testUser)
 	}
 }
+
+func TestCanRetrieveUserByEmail(t *testing.T) {
+	manager := initUserManager()
+	defer cleanDatabase()
+	testUser := generateUser(0)
+	testUser.UserType = SHELTER
+
+	id, err := manager.WriteUser(context.Background(), testUser, "password")
+	if err != nil {
+		t.Error(err)
+	}
+	testUser.ID = id
+
+	actualUser, err := manager.GetUserByEmail(context.Background(), testUser.Email)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(testUser, actualUser) {
+		t.Errorf("Expected %v to equal %v", actualUser, testUser)
+	}
+}
 func TestCanReadItsOwnSamaritanWrite(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
-	testUser := generateUser()
+	testUser := generateUser(0)
 	testUser.UserType = SAMARITAN
 
 	id, err := manager.WriteUser(context.Background(), testUser, "password")
@@ -71,7 +94,7 @@ func TestCanReadItsOwnSamaritanWrite(t *testing.T) {
 func TestItCanDeleteUser(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
-	testUser := generateUser()
+	testUser := generateUser(0)
 
 	id, err := manager.WriteUser(context.Background(), testUser, "password")
 	if err != nil {
@@ -93,7 +116,7 @@ func TestItCanGetAllUsers(t *testing.T) {
 	defer cleanDatabase()
 	testUsers := make([]*User, 0)
 	for i := 0; i < 5; i++ {
-		testUser := generateUser()
+		testUser := generateUser(i)
 
 		id, err := manager.WriteUser(context.Background(), testUser, "password")
 		if err != nil {
@@ -118,7 +141,7 @@ func TestItCanGetAllUsers(t *testing.T) {
 func TestCanReadItsOwnUserUpdate(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
-	testUser := generateUser()
+	testUser := generateUser(0)
 
 	id, err := manager.WriteUser(context.Background(), testUser, "password")
 	if err != nil {
@@ -151,10 +174,47 @@ func TestCanReadItsOwnUserUpdate(t *testing.T) {
 	}
 }
 
+func TestCanReadItsOwnUserPasswordUpdate(t *testing.T) {
+	manager := initUserManager()
+	defer cleanDatabase()
+	testUser := generateUser(0)
+
+	id, err := manager.WriteUser(context.Background(), testUser, "password")
+	if err != nil {
+		t.Error(err)
+	}
+	testUser.ID = id
+
+	createdUser, err := manager.GetUser(context.Background(), id)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !reflect.DeepEqual(testUser, createdUser) {
+		t.Errorf("Expected %v to equal %v", createdUser, testUser)
+	}
+
+	updatedPassword := "newPassword"
+	err = manager.UpdatePasswordForUser(context.Background(), createdUser.Email, updatedPassword)
+	if err != nil {
+		t.Error(err)
+	}
+
+	updatedUser, err := manager.GetPasswordForUsername(context.Background(), createdUser.Name)
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(updatedUser.Password), []byte(updatedPassword))
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestItGetsPasswordForUsername(t *testing.T) {
 	manager := initUserManager()
 	defer cleanDatabase()
-	testUser := generateUser()
+	testUser := generateUser(0)
 	unhashedPassword := "password"
 
 	id, err := manager.WriteUser(context.Background(), testUser, unhashedPassword)
@@ -173,10 +233,10 @@ func TestItGetsPasswordForUsername(t *testing.T) {
 	}
 }
 
-func generateUser() *User {
+func generateUser(id int) *User {
 	contactInfo := &ContactInformation{
 		City:       testCity,
-		Email:      testEmail,
+		Email:      fmt.Sprintf(testEmail, id),
 		Name:       testName,
 		PostalCode: testPostalCode,
 		State:      testState,

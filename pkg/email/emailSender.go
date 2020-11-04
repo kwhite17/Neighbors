@@ -16,6 +16,7 @@ const SENDGRID_SENDER_EMAIL = "neighbors@massally.org"
 
 type EmailSender interface {
 	DeliverEmail(ctx context.Context, previousItem *managers.Item, currentItem *managers.Item, userSession *managers.UserSession) error
+	DeliverPasswordResetEmail(ctx context.Context, user *managers.User, temporaryPassword string) error
 }
 
 type LocalSender struct {
@@ -67,6 +68,21 @@ func (ls *LocalSender) sendEmail(itemUpdate *ItemUpdate) error {
 	return ls.Dialer.DialAndSend(m)
 }
 
+func (ls *LocalSender) DeliverPasswordResetEmail(ctx context.Context, recipient *managers.User, temporaryPassword string) error {
+	passwordReset := BuildPasswordReset(recipient, temporaryPassword)
+	return ls.sendPasswordResetEmail(passwordReset)
+}
+
+func (ls *LocalSender) sendPasswordResetEmail(passwordReset *PasswordReset) error {
+	m := gomail.NewMessage()
+	m.SetAddressHeader("From", "kwhite@hubspot.com", "kwhite")
+	m.SetAddressHeader("To", passwordReset.Recipient.Email, passwordReset.Recipient.Name)
+	m.SetHeader("Subject", "Neighbors Password Reset")
+	m.SetBody("text/plain", formatPasswordResetEmailBody(passwordReset))
+
+	return ls.Dialer.DialAndSend(m)
+}
+
 func (ss *SendGridSender) DeliverEmail(ctx context.Context, previousItem *managers.Item, currentItem *managers.Item, userSession *managers.UserSession) error {
 	var recipient *managers.User
 	var err error
@@ -93,6 +109,24 @@ func (ss *SendGridSender) DeliverEmail(ctx context.Context, previousItem *manage
 
 	itemUpdate := BuildItemUpdate(previousItem, currentItem, recipient, updater)
 	return ss.sendEmail(itemUpdate)
+}
+
+func (ss *SendGridSender) DeliverPasswordResetEmail(ctx context.Context, recipient *managers.User, temporaryPassword string) error {
+	passwordReset := BuildPasswordReset(recipient, temporaryPassword)
+	return ss.sendPasswordResetEmail(passwordReset)
+}
+
+func (ss *SendGridSender) sendPasswordResetEmail(passwordReset *PasswordReset) error {
+	from := mail.NewEmail("Neighbors", SENDGRID_SENDER_EMAIL)
+	to := mail.NewEmail(passwordReset.Recipient.Name, passwordReset.Recipient.Email)
+	plainTextContent := formatPasswordResetEmailBody(passwordReset)
+	htmlContent := "<div>" + plainTextContent + "</div>"
+	message := mail.NewSingleEmail(from, "Neighbors Password Reset", to, plainTextContent, htmlContent)
+	response, err := ss.Client.Send(message)
+	if response.StatusCode > 299 {
+		log.Println(response)
+	}
+	return err
 }
 
 func (ss *SendGridSender) sendEmail(itemUpdate *ItemUpdate) error {
